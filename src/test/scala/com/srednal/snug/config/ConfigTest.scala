@@ -30,6 +30,10 @@ class ConfigTest extends WordSpec with Matchers {
       config.seqString("foo.names") shouldBe "foo" :: "bar" :: "baz" :: Nil
     }
 
+    "fetch a sub-config" in {
+      config("foo").string("hello") shouldBe "World"
+    }
+
     "fetch anything as a string" in {
       config.string("foo.number") shouldBe "42"
       config.string("foo.pi") shouldBe "3.14"

@@ -121,6 +121,7 @@ def setupTest(Test t) {
 
 gradle.taskGraph.afterTask { Task task, TaskState state ->
     if (task == testScoverage) {
+
         def dir = scoverage.reportDir.path - "$project.projectDir.path/"
         println("Coverage report: open ${dir}/index.html")
     }

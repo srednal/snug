@@ -19,14 +19,14 @@ package object config {
     def cdur(args: Any*): Duration =  config.duration(path(args))
   }
 
-  implicit class RichConfig(config: Config) {
-    def string(path: String): String = config.getString(path)
-    def int(path: String): Int = config.getInt(path)
-    def long(path: String): Long = config.getLong(path)
-    def double(path: String): Double = config.getDouble(path)
-    def boolean(path: String): Boolean = config.getBoolean(path)
-    def duration(path: String): Duration = config.getDuration(path, NANOSECONDS).nanos
-    def seqString(path: String): Seq[String] = config.getStringList(path).asScala
-    def config(path: String): RichConfig = config.atPath(path)
+  implicit class RichConfig(val cfg: Config) {
+    def apply(path: String): RichConfig = cfg.getConfig(path)
+    def string(path: String): String = cfg.getString(path)
+    def int(path: String): Int = cfg.getInt(path)
+    def long(path: String): Long = cfg.getLong(path)
+    def double(path: String): Double = cfg.getDouble(path)
+    def boolean(path: String): Boolean = cfg.getBoolean(path)
+    def duration(path: String): Duration = cfg.getDuration(path, NANOSECONDS).nanos
+    def seqString(path: String): Seq[String] = cfg.getStringList(path).asScala
   }
 }
