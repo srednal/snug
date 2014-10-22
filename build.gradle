@@ -1,0 +1,131 @@
+// preamble cruft
+import org.gradle.api.internal.file.FileResolver
+import org.gradle.process.internal.DefaultJavaExecAction
+import org.gradle.process.internal.JavaExecAction
+
+buildscript {
+    repositories {
+        mavenCentral()
+        maven {
+            name 'sonatype'
+            url "https://oss.sonatype.org/content/groups/public"
+        }
+    }
+    dependencies {
+        classpath group: 'org.scoverage', name: 'gradle-scoverage', version: '0.5-SNAPSHOT'
+    }
+}
+buildscript.repositories.each { project.repositories.add(it) }
+
+project.group = project.properties.projectGroup
+project.version = project.properties.projectVersion
+
+/////////////////////////////////////////////////////////////////////
+// The main useful bits:
+
+apply plugin: 'scala'
+apply plugin: 'scoverage'
+
+defaultTasks 'clean', 'checkScoverage'
+
+dependencies {
+    compile group: 'org.scala-lang', name: 'scala-library', version: '2.11.2'
+    compile group: 'org.scala-lang', name: 'scala-reflect', version: '2.11.2'
+    compile group: 'org.scala-lang', name: 'scalap', version: '2.11.2'
+    compile group: 'com.typesafe.akka', name: 'akka-actor_2.11', version: '2.3.6'
+
+//    compile group: 'com.typesafe', name: 'config', version: '1.2.1'
+//
+//    compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.7'
+//    compile group: 'org.slf4j', name: 'jul-to-slf4j', version: '1.7.7'
+//
+//    runtime group: 'org.slf4j', name: 'slf4j-log4j12', version: '1.7.7'
+//    runtime group: 'log4j', name: 'log4j', version: '1.2.17'
+//
+//    compile group: 'net.liftweb', name: "lift-json_2.11", version: '2.6-RC1'
+//    compile group: 'net.liftweb', name: "lift-json-ext_2.11", version: '2.6-RC1'
+//    compile group: 'joda-time', name: 'joda-time', version: '2.4'
+
+
+    testCompile group: 'org.scalatest', name: "scalatest_2.11", version: '2.2.2'
+    testCompile group: 'org.mockito', name: 'mockito-all', version: '1.10.8'
+    testCompile group: 'org.pegdown', name: 'pegdown', version: '1.4.2'
+
+    scoverage group: 'org.scoverage', name: 'scalac-scoverage-plugin_2.11', version: '0.99.9'
+}
+
+
+tasks.withType(ScalaCompile) {
+    scalaCompileOptions.useAnt = false  // Zinc
+}
+
+checkScoverage {
+    // actually, it's statement coverage
+    minimumLineRate = 0.85
+}
+
+////////////////////////////////////////////////////////////////
+// Test cruft
+
+compileScoverageScala.scalaCompileOptions.useAnt = true // there is some problem casting gstring to string in here
+
+task('scalatest', type: Test)
+test.dependsOn scalatest
+
+setupTest(scalatest)
+setupTest(testScoverage)
+
+def setupTest(Test t) {
+    t.systemProperties['java.awt.headless'] = 'true'
+    t.maxParallelForks = Runtime.runtime.availableProcessors()
+
+    t << {
+        // This is based on com.github.maiflai:gradle-scalatest:0.5
+        // copied to control scalatest options
+        FileResolver fileResolver = t.getServices().get(FileResolver.class)
+
+        JavaExecAction javaExecHandleBuilder = new DefaultJavaExecAction(fileResolver)
+        javaExecHandleBuilder.setMain('org.scalatest.tools.Runner')
+        javaExecHandleBuilder.setClasspath(t.classpath)
+        javaExecHandleBuilder.setJvmArgs(t.allJvmArgs)
+
+
+        List<String> args = new ArrayList<String>()
+        args.add('-oSTD')
+        args.add("-PS${maxParallelForks}".toString())
+        args.add('-R')
+        args.add(t.testClassesDir.absolutePath)
+
+        if (t.reports.junitXml.enabled) {
+            args.add('-u')
+            args.add(t.reports.junitXml.entryPoint.absolutePath)
+        }
+        if (t.reports.html.enabled) {
+            args.add('-h')
+            def dest = t.reports.html.destination
+            dest.mkdirs()
+            args.add(dest.absolutePath)
+        }
+
+        // Run a single test with -Dtest=com.foo.BarTest
+        if (System.properties.getProperty('test')) {
+            args.add('-s')
+            args.add(System.properties.getProperty('test'))
+        }
+
+        javaExecHandleBuilder.setArgs(args)
+
+        javaExecHandleBuilder.execute()
+    }
+}
+
+gradle.taskGraph.afterTask { Task task, TaskState state ->
+    if (task == testScoverage) {
+        def dir = scoverage.reportDir.path - "$project.projectDir.path/"
+        println("Coverage report: open ${dir}/index.html")
+    }
+}
+
+wrapper {
+    gradleVersion = '2.1'
+}
