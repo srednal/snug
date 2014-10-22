@@ -3,6 +3,8 @@ import org.gradle.api.internal.file.FileResolver
 import org.gradle.process.internal.DefaultJavaExecAction
 import org.gradle.process.internal.JavaExecAction
 
+import java.math.MathContext
+
 buildscript {
     repositories {
         mavenCentral()
@@ -121,9 +123,14 @@ def setupTest(Test t) {
 
 gradle.taskGraph.afterTask { Task task, TaskState state ->
     if (task == testScoverage) {
-
+        // make the path relative
         def dir = scoverage.reportDir.path - "$project.projectDir.path/"
         println("Coverage report: open ${dir}/index.html")
+    }
+    if (task == checkScoverage) {
+        def xml = checkScoverage.parser.parse(checkScoverage.cobertura)
+        def coveragePct = new BigDecimal(xml.attribute('line-rate')).multiply(100).round(new MathContext(3))
+        println("Code coverage: $coveragePct%")
     }
 }
 
