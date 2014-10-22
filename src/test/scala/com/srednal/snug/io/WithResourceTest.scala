@@ -1,4 +1,4 @@
-package com.srednal.snug
+package com.srednal.snug.io
 
 import org.scalatest._
 import java.io.Closeable

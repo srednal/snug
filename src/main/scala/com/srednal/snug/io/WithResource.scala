@@ -1,4 +1,4 @@
-package com.srednal.snug
+package com.srednal.snug.io
 
 import java.io.Closeable
 import scala.io.Source
