@@ -8,10 +8,7 @@ import java.math.MathContext
 buildscript {
     repositories {
         mavenCentral()
-        maven {
-            name 'sonatype'
-            url "https://oss.sonatype.org/content/groups/public"
-        }
+        maven { url "https://oss.sonatype.org/content/groups/public"}
     }
     dependencies {
         classpath group: 'org.scoverage', name: 'gradle-scoverage', version: '0.5-SNAPSHOT'
@@ -37,39 +34,30 @@ dependencies {
     compile group: 'com.typesafe.akka', name: 'akka-actor_2.11', version: '2.3.6'
 
     compile group: 'com.typesafe', name: 'config', version: '1.2.1'
-//
-//    compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.7'
-//    compile group: 'org.slf4j', name: 'jul-to-slf4j', version: '1.7.7'
-//
-//    runtime group: 'org.slf4j', name: 'slf4j-log4j12', version: '1.7.7'
-//    runtime group: 'log4j', name: 'log4j', version: '1.2.17'
-//
-//    compile group: 'net.liftweb', name: "lift-json_2.11", version: '2.6-RC1'
-//    compile group: 'net.liftweb', name: "lift-json-ext_2.11", version: '2.6-RC1'
-//    compile group: 'joda-time', name: 'joda-time', version: '2.4'
+
+    compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.7'
 
 
     testCompile group: 'org.scalatest', name: "scalatest_2.11", version: '2.2.2'
     testCompile group: 'org.mockito', name: 'mockito-all', version: '1.10.8'
     testCompile group: 'org.pegdown', name: 'pegdown', version: '1.4.2'
 
+    testRuntime group: 'ch.qos.logback', name: 'logback-classic', version: '1.1.2'
+
     scoverage group: 'org.scoverage', name: 'scalac-scoverage-plugin_2.11', version: '0.99.9'
 }
-
 
 tasks.withType(ScalaCompile) {
     scalaCompileOptions.useAnt = false  // Zinc
 }
 
 checkScoverage {
-    // actually, it's statement coverage
+    // actually, it's statement coverage now with scoverage but the property is still named line rate
     minimumLineRate = 0.85
 }
 
 ////////////////////////////////////////////////////////////////
 // Test cruft
-
-compileScoverageScala.scalaCompileOptions.useAnt = true // there is some problem casting gstring to string in here
 
 task('scalatest', type: Test)
 test.dependsOn scalatest
@@ -77,20 +65,20 @@ test.dependsOn scalatest
 setupTest(scalatest)
 setupTest(testScoverage)
 
+compileScoverageScala.scalaCompileOptions.useAnt = true // cast GString to String error w/ scoverage running zinc
+
 def setupTest(Test t) {
     t.systemProperties['java.awt.headless'] = 'true'
     t.maxParallelForks = Runtime.runtime.availableProcessors()
 
     t << {
-        // This is based on com.github.maiflai:gradle-scalatest:0.5
-        // copied to control scalatest options
+        // Based on com.github.maiflai:gradle-scalatest:0.5 but copied to gain control over scalatest options
         FileResolver fileResolver = t.getServices().get(FileResolver.class)
 
         JavaExecAction javaExecHandleBuilder = new DefaultJavaExecAction(fileResolver)
         javaExecHandleBuilder.setMain('org.scalatest.tools.Runner')
-        javaExecHandleBuilder.setClasspath(t.classpath)
         javaExecHandleBuilder.setJvmArgs(t.allJvmArgs)
-
+        javaExecHandleBuilder.setClasspath(t.classpath)
 
         List<String> args = new ArrayList<String>()
         args.add('-oSTD')
@@ -109,10 +97,10 @@ def setupTest(Test t) {
             args.add(dest.absolutePath)
         }
 
-        // Run a single test with -Dtest=com.foo.BarTest
-        if (System.properties.getProperty('test')) {
+        // Run a single test with -Dtest=com.srednal.snug.FooTest
+        if (System.properties['test']) {
             args.add('-s')
-            args.add(System.properties.getProperty('test'))
+            args.add(System.properties['test'])
         }
 
         javaExecHandleBuilder.setArgs(args)
@@ -133,6 +121,8 @@ gradle.taskGraph.afterTask { Task task, TaskState state ->
         println("Code coverage: $coveragePct%")
     }
 }
+
+//////////////////////////////////////////////////////////
 
 wrapper {
     gradleVersion = '2.1'

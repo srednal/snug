@@ -28,17 +28,17 @@ class Test3 extends Test {
 }
 
 class TestErr1 extends Test {
-  throw new Exception
+  throw new Exception(s"from ${getClass.getSimpleName}")
   def count = 0
 }
 
 class TestErr2 extends Test {
-  throw new Exception
+  throw new Exception(s"from ${getClass.getSimpleName}")
   def count = 0
 }
 
 class TestErr3 extends Test {
-  throw new Exception
+  throw new Exception(s"from ${getClass.getSimpleName}")
   def count = 0
 }
 
