@@ -17,7 +17,7 @@ class ServicesLoaderTest extends WordSpec with Matchers {
     "not instantiate anything till the stream is accessed" in {
       Test.clear()
       val s = ServicesLoader[Test]
-      Test.counts shouldBe Array(0, 0, 1)  // does initially instantiate head
+      Test.counts shouldBe Array(0, 0, 1) // does initially instantiate head
 
       s.head shouldBe a[Test3]
       Test.counts shouldBe Array(0, 0, 1)
@@ -55,17 +55,24 @@ class ServicesLoaderTest extends WordSpec with Matchers {
         override def warn(m: => String, t: Option[Throwable]) = ???
       }
 
-      ServicesLoader[Test].toStream.force
+      val s = ServicesLoader[Test]
 
-      errors should have ('size(5))
-      errors(0).get.getMessage should include ("Provider com.srednal.snug.testservices.TestErr1 could not be instantiated")
+      // initially only log errors up to the first success
+      errors should have('size(1))
+      errors(0).get.getMessage should include("Provider com.srednal.snug.testservices.TestErr1 could not be instantiated")
+
+      // now finish loading all the rest
+      s.toStream.force should have('size(3))
+
+      errors should have('size(5))
+      errors(0).get.getMessage should include("Provider com.srednal.snug.testservices.TestErr1 could not be instantiated")
       errors(0).get.getCause.getMessage should include("from TestErr1")
-      errors(1).get.getMessage should include ("Provider com.srednal.snug.testservices.NoneSuch not found")
-      errors(2).get.getMessage should include ("Provider com.srednal.snug.testservices.TestErr2 could not be instantiated")
+      errors(1).get.getMessage should include("Provider com.srednal.snug.testservices.NoneSuch not found")
+      errors(2).get.getMessage should include("Provider com.srednal.snug.testservices.TestErr2 could not be instantiated")
       errors(2).get.getCause.getMessage should include("from TestErr2")
-      errors(3).get.getMessage should include ("Provider com.srednal.snug.testservices.Test could not be instantiated")
+      errors(3).get.getMessage should include("Provider com.srednal.snug.testservices.Test could not be instantiated")
       errors(3).get.getCause shouldBe a[InstantiationException]
-      errors(4).get.getMessage should include ("Provider com.srednal.snug.testservices.TestErr3 could not be instantiated")
+      errors(4).get.getMessage should include("Provider com.srednal.snug.testservices.TestErr3 could not be instantiated")
       errors(4).get.getCause.getMessage should include("from TestErr3")
     }
   }
@@ -91,8 +98,8 @@ class ServicesLoaderTest extends WordSpec with Matchers {
 
       ServiceLoader[Test]
 
-      errors should have ('size(1))
-      errors(0).get.getMessage should include ("Provider com.srednal.snug.testservices.TestErr1 could not be instantiated")
+      errors should have('size(1))
+      errors(0).get.getMessage should include("Provider com.srednal.snug.testservices.TestErr1 could not be instantiated")
     }
   }
 }
