@@ -41,6 +41,9 @@ object CaseClassReflectTest {
     def apply(foo: String, bar: Int) = new HandMade(foo, bar)
   }
 
+  type Y = SelfRef
+  type X = TypeParam[Y]
+
 
 }
 
@@ -95,6 +98,25 @@ class CaseClassReflectTest extends WordSpec with Matchers {
         "sp" -> typeOf[Seq[Map[String, TypeParam[Thing]]]],
         "selfish" -> typeOf[TypeParam[TypeParam[Seq[Thing]]]])
     }
+
+    "reflect when referenced by a type" in {
+      val cpt = caseParamTypes[X]
+      cpt shouldBe Seq(
+        "p" -> typeOf[Y],
+        "sp" -> typeOf[Seq[Y]],
+        "selfish" -> typeOf[TypeParam[TypeParam[Seq[Thing]]]])
+      assert(cpt(0)._2 =:= typeOf[SelfRef])
+      assert(cpt(1)._2 =:= typeOf[Seq[SelfRef]])
+    }
+
+    "reflect with wildcard types" in {
+      val cpt = caseParamTypes[TypeParam[_]]
+      cpt.map(_._1) shouldBe Seq("p", "sp", "selfish")
+      assert(cpt(0)._2 <:< typeOf[Any])
+      assert(cpt(1)._2 <:< typeOf[Seq[Any]])
+      assert(cpt(2)._2 =:= typeOf[TypeParam[TypeParam[Seq[Thing]]]])
+    }
+
     "return Nil for HandMade fake case class" in {
       caseParamTypes[HandMade] shouldBe Nil
     }
