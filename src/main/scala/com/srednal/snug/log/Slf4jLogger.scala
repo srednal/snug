@@ -3,6 +3,9 @@ package com.srednal.snug.log
 import org.slf4j
 
 class Slf4jLoggerFactory extends LoggerFactory {
+  // initialize slf4j early(ish)
+  slf4j.LoggerFactory.getILoggerFactory
+
   def apply(name: String) = new Slf4jLogger(name match {
     case "" | null => slf4j.Logger.ROOT_LOGGER_NAME
     case n => n

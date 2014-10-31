@@ -36,7 +36,7 @@ trait Logger {
 
 /* This is split out so tests can direct to a test Logger instance */
 private[log] trait LoggerMaker {
-  val factory: String => Logger = ServiceLoader[LoggerFactory] getOrElse { _: String => Logger.Silent}
+  val factory: String => Logger
 
   def apply(thiz: Any): Logger = apply(thiz.getClass.getName)
 
@@ -49,6 +49,7 @@ private[log] trait LoggerMaker {
 
 
 object Logger extends LoggerMaker {
+  override val factory: String => Logger = ServiceLoader[LoggerFactory] getOrElse { _: String => Logger.Silent}
 
   object Silent extends Logger {
     def trace(m: => String, t: Option[Throwable]) = ()
