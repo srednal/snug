@@ -15,8 +15,7 @@ object CaseClassReflect {
 
   def typeFor(c: Class[_]) = runtimeMirror(c.getClassLoader).staticClass(c.getCanonicalName).selfType
 
-  def _caseParamTypes(t: Type): Seq[(String, Type)] =
-    t.decls.sorted.filter(_.isTerm).map(_.asTerm).filter(_.isAccessor).filter(_.isCaseAccessor).map { a =>
-      a.name.toString -> a.asTerm.accessed.typeSignatureIn(t)
-    }
+  def _caseParamTypes(t: Type): Seq[(String, Type)] = t.decls.sorted collect {
+    case s: MethodSymbolApi if s.isCaseAccessor => s.name.decodedName.toString -> s.accessed.typeSignatureIn(t)
+  }
 }
