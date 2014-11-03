@@ -72,9 +72,6 @@ object PubSub {
     def route(message: Any, sender: ActorRef): Unit = router.route(message, sender)
   }
 
-  // a maintainence sweep
-  private object Maint
-
 }
 
 class PubSub(val isRoot: Boolean = false) extends Actor {
@@ -114,13 +111,6 @@ class PubSub(val isRoot: Boolean = false) extends Actor {
     case Unsubscribe(receiver, _) =>
       router -= receiver
       sender() ! Unsubscribed
-      self ! Maint
-
-    // self-check
-    case Maint if !isRoot && router.isEmpty =>
-      // I have no routees (no subscribers, no children) so I am no longer of use :(
-      // remove myself from my parent's router, then stop
-      (context.parent ? Unsubscribe(self, None)) onComplete { _ => context stop self}
 
     // route a message to subchannel(s)
     case Message(m, Some(channel)) =>
