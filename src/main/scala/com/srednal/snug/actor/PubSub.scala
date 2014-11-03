@@ -77,12 +77,15 @@ object PubSub {
 class PubSub(val isRoot: Boolean = false) extends Actor {
   import PubSub._
 
+  val isChild = !isRoot
+
   val router = new BroadcastRouter
 
   def channelActor(ch: String, create: Boolean) =
     context.actorSelection(ch).resolveOne() recover {
       case _: ActorNotFound if create =>
         val a = context.actorOf(Props(new PubSub), ch)
+        context watch a
         // all messages to us will also be routed to our children
         router += a
         a
@@ -101,16 +104,23 @@ class PubSub(val isRoot: Boolean = false) extends Actor {
       router += receiver
       sender() ! Subscribed
 
-    // unsubscribe from a sub-channel
+    // un-subscribe from a sub-channel
     case Unsubscribe(receiver, Some(channel)) =>
       val sndr = sender()
       val (outer, inner) = splitChannel(channel)
       channelActor(outer, false) map {_ tell(Unsubscribe(receiver, inner), sndr)}
 
-    // they dont like me anymore
+    // they don't like me anymore
     case Unsubscribe(receiver, _) =>
       router -= receiver
+      // shutdown if I have no children left to route to
+      if (isChild && router.isEmpty) context stop self
       sender() ! Unsubscribed
+
+    case Terminated(child) =>
+      // remove terminated child actor, maybe shutdown self (keep rootActor alive)
+      router -= child
+      if (isChild && router.isEmpty) context stop self
 
     // route a message to subchannel(s)
     case Message(m, Some(channel)) =>
