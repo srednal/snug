@@ -35,6 +35,8 @@ class ConfigTest extends WordSpec with Matchers {
       config.as[Duration]("foo.interval") shouldBe 5.seconds
       config.as[FiniteDuration]("foo.interval") shouldBe 5.seconds
       config.as[Timeout]("foo.interval") shouldBe Timeout(5.seconds)
+      config.as[Duration]("foo.number") shouldBe 42.millis
+      config.as[Duration]("foo.pi") shouldBe 3.14.millis
     }
     "fetch a list of strings" in {
       config.as[Seq[String]]("foo.names") shouldBe Seq("foo", "bar", "baz")
