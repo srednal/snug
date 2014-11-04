@@ -1,32 +1,120 @@
 package com.srednal.snug
 
-import com.typesafe.config.{Config, ConfigFactory}
+import akka.util.Timeout
+import com.typesafe.config._
+import com.typesafe.config.ConfigValueType._
+import com.srednal.snug.CaseClassReflect._
 import scala.concurrent.duration._
 import scala.collection.JavaConverters._
+import scala.reflect.runtime.universe._
+import scala.util.control.NonFatal
 
 package object config {
 
-  val config: RichConfig = ConfigFactory.load()
-
-  /** cstr"foo.bar" => config.string("foo.bar") */
-  implicit class ConfigStringContext(val sc: StringContext) extends AnyVal {
-    private def path(args: Seq[Any]) = sc.standardInterpolator(StringContext.treatEscapes, args)
-    def cstr(args: Any*): String = config.string(path(args))
-    def cint(args: Any*): Int = config.int(path(args))
-    def clong(args: Any*): Long = config.long(path(args))
-    def cdbl(args: Any*): Double = config.double(path(args))
-    def cbool(args: Any*): Boolean = config.boolean(path(args))
-    def cdur(args: Any*): FiniteDuration =  config.duration(path(args))
-  }
+  val config = ConfigFactory.load()
 
   implicit class RichConfig(val cfg: Config) {
-    def apply(path: String): RichConfig = cfg.getConfig(path)
-    def string(path: String): String = cfg.getString(path)
-    def int(path: String): Int = cfg.getInt(path)
-    def long(path: String): Long = cfg.getLong(path)
-    def double(path: String): Double = cfg.getDouble(path)
-    def boolean(path: String): Boolean = cfg.getBoolean(path)
-    def duration(path: String): FiniteDuration = cfg.getDuration(path, NANOSECONDS).nanos
-    def seqString(path: String): Seq[String] = cfg.getStringList(path).asScala
+    def apply(path: String): Config = cfg.getConfig(path)
+    def as[A: TypeTag](path: String): A =
+      try asType(typeOf[A])(path).asInstanceOf[A]
+      catch {
+        case NonFatal(e) if cfg.hasPath(path) => throw new IllegalArgumentException(cfg.getValue(path).origin().description(), e)
+      }
+
+    private def asType(tpe: Type)(path: String): Any = tpe match {
+
+      case StringType => cfg.getValue(path).unwrapped().toString
+
+      case t if t <:< typeOf[Option[_]] => if (cfg.hasPath(path)) Some(asType(t.typeArgs.head)(path)) else None
+
+      case _ =>
+        val configValue = cfg.getValue(path)
+
+        (tpe, configValue, configValue.valueType()) match {
+
+          case (IntType, v, NUMBER) => v.unwrapped().asInstanceOf[Number].intValue()
+          case (LongType, v, NUMBER) => v.unwrapped().asInstanceOf[Number].longValue()
+          case (DoubleType, v, NUMBER) => v.unwrapped().asInstanceOf[Number].doubleValue()
+
+          case (BooleanType, v, BOOLEAN) => v.unwrapped().asInstanceOf[Boolean]
+
+
+          // scala Duration and HOCON have slightly different string representations.
+          // Could parse with Duration(v.as[String]), but keep the HOCON semantics:
+          case (t, v, STRING) if t <:< typeOf[Duration] => v.atKey("X").getDuration("X", NANOSECONDS).nanos
+
+          case (t, v, STRING) if t <:< typeOf[Timeout] => Timeout(as[FiniteDuration](path))
+
+          // Container types (recurse):
+
+          // support specific types of collections so the builders are created properly
+          case (t, v, LIST) if t <:< typeOf[Set[_]] => asListOf(t.typeArgs.head)(v.asInstanceOf[ConfigList]).toSet
+          case (t, v, LIST) if t <:< typeOf[Traversable[_]] => asListOf(t.typeArgs.head)(v.asInstanceOf[ConfigList])
+
+          case (t, v, OBJECT) if typeIsCaseClass(t) => createForType(t) {
+            val vCfg = new RichConfig(v.asInstanceOf[ConfigObject].toConfig)
+            caseParamTypesForType(t) map {
+              // config value for each case class param
+              case (n, p) => vCfg.asType(p)(n)
+            }
+          }
+
+          case (_, v, _) => v.unwrapped() // wing it
+        }
+
+    }
+
+    private def asListOf(of: Type)(v: ConfigList) = v.asScala.toList map { x => new RichConfig(x.atKey("X")).asType(of)("X")}
   }
+
+  private val StringType = typeOf[String]
+  private val IntType = typeOf[Int]
+  private val LongType = typeOf[Long]
+  private val DoubleType = typeOf[Double]
+  private val BooleanType = typeOf[Boolean]
+
 }
+
+//  }
+//
+//  implicit class RichConfigValue(cv: ConfigValue) {
+//    def as[A: TypeTag]: A = try cfgValueAs(typeOf[A])(cv).asInstanceOf[A]
+//    catch {
+//      case NonFatal(e) => throw new IllegalArgumentException(cv.origin().description(), e)
+//    }
+//  }
+//  private def cfgValueAs(tpe: Type)(v: ConfigValue): Any = (tpe, v.valueType()) match {
+//
+//    case (StringType, _) => v.unwrapped().toString
+//
+//    case (IntType, NUMBER) => v.unwrapped().asInstanceOf[Number].intValue()
+//    case (LongType, NUMBER) => v.unwrapped().asInstanceOf[Number].longValue()
+//    case (DoubleType, NUMBER) => v.unwrapped().asInstanceOf[Number].doubleValue()
+//
+//    case (BooleanType, BOOLEAN) => v.unwrapped().asInstanceOf[Boolean]
+//
+//
+//    // scala Duration and HOCON have slightly different string representations.
+//    // Could parse with Duration(v.as[String]), but keep the HOCON semantics:
+//    case (d, STRING) if d <:< typeOf[Duration] => v.atKey("X").getDuration("X", NANOSECONDS).nanos
+//
+//    case (t, STRING) if t <:< typeOf[Timeout] => Timeout(v.as[FiniteDuration])
+//
+//    // support specific types of collections so the builders are created properly
+//    case (s, LIST) if s <:< typeOf[List[_]] => v.asInstanceOf[ConfigList].asScala.toList map cfgValueAs(s.typeArgs.head)
+//    case (s, LIST) if s <:< typeOf[Set[_]] => v.asInstanceOf[ConfigList].asScala.toSet map cfgValueAs(s.typeArgs.head)
+//    case (s, LIST) if s <:< typeOf[Seq[_]] => v.asInstanceOf[ConfigList].asScala.toSeq map cfgValueAs(s.typeArgs.head)
+//    case (s, LIST) if s <:< typeOf[Iterable[_]] => v.asInstanceOf[ConfigList].asScala.toIterable map cfgValueAs(s.typeArgs.head)
+//    case (s, LIST) if s <:< typeOf[Traversable[_]] => v.asInstanceOf[ConfigList].asScala.toTraversable map cfgValueAs(s.typeArgs.head)
+//
+//    case (t, OBJECT) if typeIsCaseClass(t) => createForType(t) {
+//      caseParamTypesForType(t) map {
+//        // config value for each case class param
+//        case (n, p) => cfgValueAs(p)(v.asInstanceOf[ConfigObject].get(n))
+//      }
+//    }
+//
+//    case _ => v.unwrapped() // wing it
+//  }
+//
+
