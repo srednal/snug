@@ -8,49 +8,49 @@ import scala.concurrent.TimeoutException
 import scala.concurrent.duration._
 import spray.util.pimpFuture
 
-class PubSubTest extends WordSpec with Matchers {
-  import PubSub._
+class PubSub2Test extends WordSpec with Matchers {
+  import PubSub2._
 
   implicit val actorSystem = ActorSystem("test")
 
-  "The PubSub object" should {
+  "The PubSub2 object" should {
 
     val emptyActor = TestActorRef(new Actor {def receive = { case _ => }})
 
     "construct a simple sub-channel message" in {
-      splitChannel("sub") shouldBe("sub", None)
+      channelParent("sub") shouldBe None
     }
     "construct a sub-sub-channel message" in {
-      splitChannel("outer/inner/foo") shouldBe("outer", Some("inner/foo"))
+      channelParent("outer/inner/foo") shouldBe  Some("outer/inner")
     }
 
     "reply Subscribed" in {
-      (PubSub ? Subscribe(emptyActor, None)).await shouldBe Subscribed
-      (PubSub ? Subscribe(emptyActor, None)).await shouldBe Subscribed
+      (PubSub2 ? Subscribe(emptyActor, None)).await shouldBe Subscribed
+      (PubSub2 ? Subscribe(emptyActor, None)).await shouldBe Subscribed
     }
 
     "reply Subscribed (via !)" in {
       implicit val in = inbox()
-      PubSub ! Subscribe(emptyActor, None)
+      PubSub2 ! Subscribe(emptyActor, None)
       in.receive() shouldBe Subscribed
     }
 
     "reply Unsubscribed" in {
-      (PubSub ? Unsubscribe(emptyActor, None)).await shouldBe Unsubscribed
+      (PubSub2 ? Unsubscribe(emptyActor, None)).await shouldBe Unsubscribed
     }
 
     "reply Subscribed for sub-channels" in {
-      (PubSub ? Subscribe(emptyActor, Some("outer"))).await shouldBe Subscribed
+      (PubSub2 ? Subscribe(emptyActor, Some("outer"))).await shouldBe Subscribed
     }
     "reply Subscribed for sub-sub-channels" in {
-      (PubSub ? Subscribe(emptyActor, Some("outer/inner"))).await shouldBe Subscribed
+      (PubSub2 ? Subscribe(emptyActor, Some("outer/inner"))).await shouldBe Subscribed
     }
 
     "reply Unsubscribed for sub-channels" in {
-      (PubSub ? Unsubscribe(emptyActor, Some("outer"))).await shouldBe Unsubscribed
+      (PubSub2 ? Unsubscribe(emptyActor, Some("outer"))).await shouldBe Unsubscribed
     }
     "reply Unsubscribed for sub-sub-channels" in {
-      (PubSub ? Unsubscribe(emptyActor, Some("outer/inner"))).await shouldBe Unsubscribed
+      (PubSub2 ? Unsubscribe(emptyActor, Some("outer/inner"))).await shouldBe Unsubscribed
     }
 
     "reply subscribed from subscribe func" in {
@@ -62,26 +62,14 @@ class PubSubTest extends WordSpec with Matchers {
   }
 
 
-  "The PubSub Actor" should {
+  "The PubSub2 Actor" should {
 
-    "create as branch nodes by default" in {
-      TestActorRef(new PubSub).underlyingActor.isRoot shouldBe false
-    }
-
-    "create a sub-channel actor" in {
-      val rootRef = TestActorRef(new PubSub(true), "pubsub")
-      val root = rootRef.underlyingActor
-      an[ActorNotFound] should be thrownBy root.channelActor("foo", false).await
-      root.channelActor("foo", true).await shouldBe an[ActorRef]
-      root.channelActor("foo", false).await shouldBe an[ActorRef]
-      root.channelActor("foo", false).await.path shouldBe (rootRef.path / "foo")
-    }
 
     "deliver messages to subscribed actors" in {
       val listener = inbox()
       subscribe(listener.receiver, None).await
 
-      PubSub ! Message("hello there", None)
+      PubSub2 ! Message("hello there", None)
       listener.receive() shouldBe "hello there"
     }
 
@@ -89,15 +77,15 @@ class PubSubTest extends WordSpec with Matchers {
       val listener = inbox()
       subscribe(listener.receiver, None).await
 
-      PubSub ! Message("hello there you", None)
+      PubSub2 ! Message("hello there you", None)
       listener.receive() shouldBe "hello there you"
 
-      PubSub ! Message("hello there more", None)
+      PubSub2 ! Message("hello there more", None)
       listener.receive() shouldBe "hello there more"
 
       unsubscribe(listener.receiver, None).await
 
-      PubSub ! Message("hello there again", None)
+      PubSub2 ! Message("hello there again", None)
       a[TimeoutException] should be thrownBy listener.receive(250.millis)
     }
 
@@ -106,7 +94,7 @@ class PubSubTest extends WordSpec with Matchers {
       val listener = inbox()
       subscribe(listener.receiver, Some("test/sub")).await
 
-      PubSub ! Message("hello subs", Some("test"))
+      PubSub2 ! Message("hello subs", Some("test"))
       listener.receive() shouldBe "hello subs"
     }
 
@@ -115,12 +103,13 @@ class PubSubTest extends WordSpec with Matchers {
       val listener1 = inbox()
       val listener2 = inbox()
       val listener3 = inbox()
+
       subscribe(listener0.receiver, None).await
       subscribe(listener1.receiver, Some("test1")).await
       subscribe(listener2.receiver, Some("test1/sub1")).await
       subscribe(listener3.receiver, Some("test1/sub1/sub2")).await
 
-      PubSub ! Message("hello top", None)
+      PubSub2 ! Message("hello top", None)
       listener0.receive() shouldBe "hello top"
       listener1.receive() shouldBe "hello top"
       listener2.receive() shouldBe "hello top"
@@ -137,7 +126,7 @@ class PubSubTest extends WordSpec with Matchers {
       subscribe(listener2.receiver, Some("test2/sub1")).await
       subscribe(listener3.receiver, Some("test2/sub1/sub2")).await
 
-      PubSub ! Message("hello down", Some("test2/sub1"))
+      PubSub2 ! Message("hello down", Some("test2/sub1"))
       listener2.receive() shouldBe "hello down"
       listener3.receive() shouldBe "hello down"
       a[TimeoutException] should be thrownBy listener0.receive(250.millis)

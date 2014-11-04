@@ -6,10 +6,14 @@ import akka.routing.{ActorRefRoutee, BroadcastRoutingLogic, Router}
 import akka.util.Timeout
 import com.srednal.snug.log.Logger
 import com.srednal.snug.config._
+import scala.collection.mutable
 import scala.concurrent.Future
 
 /**
  * A Pub-Sub hub to play with actors.
+ *
+ * This is a different way (vs. PubSub) using only one actor and several routers (rather than one router per each of several actors).
+ *
  * Subscribe/Unsubscribe to channel.
  * Publish to channel.
  *
@@ -23,14 +27,14 @@ import scala.concurrent.Future
  *
  * A message can be anything.
  */
-object PubSub {
+object PubSub2 {
   val log = Logger(this)
 
   val actorSystem = ActorSystem("srednal")
   implicit val executionEnv = actorSystem.dispatcher
   implicit val timeout = config.as[Timeout]("pubsub.select-timeout")
 
-  private val rootActor = actorSystem.actorOf(Props(new PubSub(true)), "pubsub")
+  private val actor = actorSystem.actorOf(Props(new PubSub2), "pubsub2")
 
   /** A subscribe message - subscribe receiver to channel. */
   case class Subscribe(receiver: ActorRef, channel: Option[String])
@@ -48,10 +52,10 @@ object PubSub {
   case class Message(msg: Any, channel: Option[String])
 
   /** Send a message (via tell) */
-  def !(message: Any)(implicit sender: ActorRef = Actor.noSender): Unit = rootActor ! message
+  def !(message: Any)(implicit sender: ActorRef = Actor.noSender): Unit = actor ! message
 
   /** Send a message (via ask) */
-  def ?(message: Any)(implicit timeout: Timeout): Future[Any] = rootActor ? message
+  def ?(message: Any)(implicit timeout: Timeout): Future[Any] = actor ? message
 
   /** Publish a message (simple async) */
   def publish(message: Message): Unit = this ! message
@@ -65,9 +69,9 @@ object PubSub {
     (this ? Unsubscribe(receiver, channel)).mapTo[Unsubscribed.type]
 
   /** Split "foo/bar..." into "foo" and (optionally) "bar..." */
-  private[actor] def splitChannel(channel: String): (String, Option[String]) = channel split("/", 2) match {
-    case Array(c1, c2) => (c1, Some(c2))
-    case Array(c) => (c, None)
+  private[actor] def channelParent(channel: String): Option[String] = channel.reverse.split("/", 2) match {
+    case Array(_, c) => Some(c.reverse)
+    case Array(_) => None
   }
 
   // encapsulate the Router (it needs to be mutable to add/remove routees)
@@ -83,67 +87,39 @@ object PubSub {
 
 }
 
-class PubSub(val isRoot: Boolean = false) extends Actor {
-  import PubSub._
+class PubSub2 extends Actor {
+  import PubSub2._
 
-  val isChild = !isRoot
-
-  val router = new BroadcastRouter
-
-  def channelActor(ch: String, create: Boolean) =
-    context.actorSelection(ch).resolveOne() recover {
-      case _: ActorNotFound if create =>
-        val a = context.actorOf(Props(new PubSub), ch)
-        context watch a
-        // all messages to us will also be routed to our children
-        router += a
-        a
-    }
+  val routers = mutable.Map[String,BroadcastRouter]()
 
   override def receive = {
 
     // subscribe to one of my sub-channels
-    case Subscribe(receiver, Some(channel)) =>
-      val sndr = sender()
-      val (outer, inner) = splitChannel(channel)
-      channelActor(outer, true) map {_ tell(Subscribe(receiver, inner), sndr)}
-
-    // subscribe to ME!
-    case Subscribe(receiver, _) =>
-      router += receiver
+    case Subscribe(receiver, channel) =>
+      def sub(ch: Option[String]): Unit = {
+        routers.getOrElseUpdate(ch.orNull, new BroadcastRouter) += receiver
+        // subscribe to parent channels
+        ch map channelParent foreach sub
+      }
+      sub(channel)
       sender() ! Subscribed
 
     // un-subscribe from a sub-channel
-    case Unsubscribe(receiver, Some(channel)) =>
-      val sndr = sender()
-      val (outer, inner) = splitChannel(channel)
-      channelActor(outer, false) map {_ tell(Unsubscribe(receiver, inner), sndr)}
-
-    // they don't like me anymore
-    case Unsubscribe(receiver, _) =>
-      router -= receiver
-      // shutdown if I have no children left to route to
-      // this has race conditions if we have sub-channel subscribe messages in our queue
-      // if (isChild && router.isEmpty) context stop self
+    case Unsubscribe(receiver, channel) =>
+      def unsub(ch: Option[String]): Unit = {
+        routers get ch.orNull foreach { r =>
+          r -= receiver
+          if (r.isEmpty) routers -= ch.orNull
+        }
+        // un-subscribe from parent channels
+        ch map channelParent foreach unsub
+      }
+      unsub(channel)
       sender() ! Unsubscribed
 
-    case Terminated(child) =>
-      // remove terminated child actor
-      router -= child
-    //      if (isChild && router.isEmpty) context stop self
-
-    // route a message to subchannel(s)
-    case Message(m, Some(channel)) =>
-      val sndr = sender()
-      val (outer, inner) = splitChannel(channel)
-      channelActor(outer, false) map {_ tell(Message(m, inner), sndr)}
-
-    // a message for me - route it
-    case Message(m, _) => self forward m
-
-    // base message routing
-    // this will also send this raw message to my subchannel actors, as they are also registered as routes
-    case m if router.nonEmpty => router.route(m, sender())
+    // route a message
+    case Message(m, channel) =>
+      routers get channel.orNull map (_.route(m, sender()))
 
     // avoid some of the dead-letter logging
     case deadLetter => log.debug(s"no route for: $deadLetter")
