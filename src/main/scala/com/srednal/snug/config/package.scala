@@ -57,11 +57,13 @@ package object config {
 
           case (TimeoutType, _, STRING | NUMBER) => Timeout(as[FiniteDuration](path))
 
-          // support Set specifically
-          case (t, v: ConfigList, _) if t <:< set_Type => asListOf(t.typeArgs.head, v).toSet
+          // support Set, Array specifically
+          case (t@TypeRef(_, _, arg :: Nil), v: ConfigList, _) if t <:< set_Type => asListOf(arg, v).toSet
+
+          case (t@TypeRef(_, _, arg :: Nil), v: ConfigList, _) if t <:< array_Type => asListOf(arg, v).toArray
 
           // other Traversables will be instances of List (so List, Seq, Iterable, Traversable will be ok)
-          case (t, v: ConfigList, _) if t <:< traversable_Type => asListOf(t.typeArgs.head, v)
+          case (t@TypeRef(_, _, arg :: Nil), v: ConfigList, _) if t <:< traversable_Type => asListOf(arg, v)
 
           // case class mapping
           case (t, v: ConfigObject, _) if typeIsCaseClass(t) =>
@@ -83,6 +85,7 @@ package object config {
   private val durationType = typeOf[Duration]
   private val option_Type = typeOf[Option[_]]
   private val set_Type = typeOf[Set[_]]
+  private val array_Type = typeOf[Array[_]]
   private val traversable_Type = typeOf[Traversable[_]]
 
 }

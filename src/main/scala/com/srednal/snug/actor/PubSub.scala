@@ -4,6 +4,8 @@ import akka.actor._
 import akka.pattern.ask
 import akka.routing.{ActorRefRoutee, BroadcastRoutingLogic, Router}
 import akka.util.Timeout
+import com.srednal.snug.Path
+import com.srednal.snug.Path._
 import com.srednal.snug.log.Logger
 import com.srednal.snug.config._
 import scala.concurrent.Future
@@ -33,19 +35,19 @@ object PubSub {
   private val rootActor = actorSystem.actorOf(Props(new PubSub(true)), "pubsub")
 
   /** A subscribe message - subscribe receiver to channel. */
-  case class Subscribe(receiver: ActorRef, channel: Option[String])
+  case class Subscribe(receiver: ActorRef, channel: Path)
 
   /** Subscribe responds to the sender with Subscribed */
   case object Subscribed
 
   /** An unsubscribe message - unsub receiver from channel. */
-  case class Unsubscribe(receiver: ActorRef, channel: Option[String])
+  case class Unsubscribe(receiver: ActorRef, channel: Path)
 
   /** Unsubscribe responds to the sender with Unsubscribed */
   case object Unsubscribed
 
   /** A wrapper around the message to also hold its destination.  The actual message delivered to the subscribers is msg. */
-  case class Message(msg: Any, channel: Option[String])
+  case class Message(msg: Any, channel: Path)
 
   /** Send a message (via tell) */
   def !(message: Any)(implicit sender: ActorRef = Actor.noSender): Unit = rootActor ! message
@@ -54,21 +56,21 @@ object PubSub {
   def ?(message: Any)(implicit timeout: Timeout): Future[Any] = rootActor ? message
 
   /** Publish a message (simple async) */
+  def publish(msg: Any, channelPath: String): Unit = publish(msg, channelPath.asPath)
+  def publish(msg: Any, channel: Path): Unit = publish(Message(msg, channel))
   def publish(message: Message): Unit = this ! message
 
+
   /** Subscribe */
-  def subscribe(receiver: ActorRef, channel: Option[String]): Future[Subscribed.type] =
+  def subscribe(receiver: ActorRef, channelPath: String): Future[Subscribed.type] = subscribe(receiver, channelPath.asPath)
+  def subscribe(receiver: ActorRef, channel: Path): Future[Subscribed.type] =
     (this ? Subscribe(receiver, channel)).mapTo[Subscribed.type]
 
   /** Unsubscribe */
-  def unsubscribe(receiver: ActorRef, channel: Option[String])(implicit timeout: Timeout): Future[Unsubscribed.type] =
+  def unsubscribe(receiver: ActorRef, channelPath: String)(implicit timeout: Timeout): Future[Unsubscribed.type] = unsubscribe(receiver, channelPath.asPath)
+  def unsubscribe(receiver: ActorRef, channel: Path)(implicit timeout: Timeout): Future[Unsubscribed.type] =
     (this ? Unsubscribe(receiver, channel)).mapTo[Unsubscribed.type]
 
-  /** Split "foo/bar..." into "foo" and (optionally) "bar..." */
-  private[actor] def splitChannel(channel: String): (String, Option[String]) = channel split("/", 2) match {
-    case Array(c1, c2) => (c1, Some(c2))
-    case Array(c) => (c, None)
-  }
 
   // encapsulate the Router (it needs to be mutable to add/remove routees)
   class BroadcastRouter {
@@ -102,44 +104,45 @@ class PubSub(val isRoot: Boolean = false) extends Actor {
 
   override def receive = {
 
-    // subscribe to one of my sub-channels
-    case Subscribe(receiver, Some(channel)) =>
-      val sndr = sender()
-      val (outer, inner) = splitChannel(channel)
-      channelActor(outer, true) map {_ tell(Subscribe(receiver, inner), sndr)}
-
     // subscribe to ME!
-    case Subscribe(receiver, _) =>
+    case Subscribe(receiver, ^) =>
       router += receiver
       sender() ! Subscribed
 
-    // un-subscribe from a sub-channel
-    case Unsubscribe(receiver, Some(channel)) =>
+    // subscribe to one of my sub-channels
+    case Subscribe(receiver, Path(outer, inner@_*)) =>
       val sndr = sender()
-      val (outer, inner) = splitChannel(channel)
-      channelActor(outer, false) map {_ tell(Unsubscribe(receiver, inner), sndr)}
+      channelActor(outer, true) map {_ tell(Subscribe(receiver, Path(inner)), sndr)}
+
 
     // they don't like me anymore
-    case Unsubscribe(receiver, _) =>
+    case Unsubscribe(receiver, ^) =>
       router -= receiver
       // shutdown if I have no children left to route to
       // this has race conditions if we have sub-channel subscribe messages in our queue
       // if (isChild && router.isEmpty) context stop self
       sender() ! Unsubscribed
 
+    // un-subscribe from a sub-channel
+    case Unsubscribe(receiver, Path(outer, inner@_*)) =>
+      val sndr = sender()
+      channelActor(outer, false) map {_ tell(Unsubscribe(receiver, Path(inner)), sndr)}
+
+
     case Terminated(child) =>
       // remove terminated child actor
       router -= child
     //      if (isChild && router.isEmpty) context stop self
 
-    // route a message to subchannel(s)
-    case Message(m, Some(channel)) =>
-      val sndr = sender()
-      val (outer, inner) = splitChannel(channel)
-      channelActor(outer, false) map {_ tell(Message(m, inner), sndr)}
 
     // a message for me - route it
-    case Message(m, _) => self forward m
+    case Message(m, ^) => self forward m
+
+    // route a message to subchannel(s)
+    case Message(m, Path(outer, inner@_*)) =>
+      val sndr = sender()
+      channelActor(outer, false) map {_ tell(Message(m, Path(inner)), sndr)}
+
 
     // base message routing
     // this will also send this raw message to my subchannel actors, as they are also registered as routes

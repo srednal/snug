@@ -4,6 +4,8 @@ import akka.actor._
 import akka.pattern.ask
 import akka.routing.{ActorRefRoutee, BroadcastRoutingLogic, Router}
 import akka.util.Timeout
+import com.srednal.snug.Path
+import com.srednal.snug.Path._
 import com.srednal.snug.log.Logger
 import com.srednal.snug.config._
 import scala.collection.mutable
@@ -37,19 +39,19 @@ object PubSub2 {
   private val actor = actorSystem.actorOf(Props(new PubSub2), "pubsub2")
 
   /** A subscribe message - subscribe receiver to channel. */
-  case class Subscribe(receiver: ActorRef, channel: Option[String])
+  case class Subscribe(receiver: ActorRef, channel: Path)
 
   /** Subscribe responds to the sender with Subscribed */
   case object Subscribed
 
   /** An unsubscribe message - unsub receiver from channel. */
-  case class Unsubscribe(receiver: ActorRef, channel: Option[String])
+  case class Unsubscribe(receiver: ActorRef, channel: Path)
 
   /** Unsubscribe responds to the sender with Unsubscribed */
   case object Unsubscribed
 
   /** A wrapper around the message to also hold its destination.  The actual message delivered to the subscribers is msg. */
-  case class Message(msg: Any, channel: Option[String])
+  case class Message(msg: Any, channel: Path)
 
   /** Send a message (via tell) */
   def !(message: Any)(implicit sender: ActorRef = Actor.noSender): Unit = actor ! message
@@ -58,21 +60,25 @@ object PubSub2 {
   def ?(message: Any)(implicit timeout: Timeout): Future[Any] = actor ? message
 
   /** Publish a message (simple async) */
+  def publish(msg: Any, channelPath: String): Unit = publish(msg, channelPath.asPath)
+  def publish(msg: Any, channel: Path): Unit = publish(Message(msg, channel))
   def publish(message: Message): Unit = this ! message
 
   /** Subscribe */
-  def subscribe(receiver: ActorRef, channel: Option[String]): Future[Subscribed.type] =
+  def subscribe(receiver: ActorRef, channelPath: String): Future[Subscribed.type] = subscribe(receiver, channelPath.asPath)
+  def subscribe(receiver: ActorRef, channel: Path): Future[Subscribed.type] =
     (this ? Subscribe(receiver, channel)).mapTo[Subscribed.type]
 
   /** Unsubscribe */
-  def unsubscribe(receiver: ActorRef, channel: Option[String])(implicit timeout: Timeout): Future[Unsubscribed.type] =
+  def unsubscribe(receiver: ActorRef, channelPath: String)(implicit timeout: Timeout): Future[Unsubscribed.type] = unsubscribe(receiver, channelPath.asPath)
+  def unsubscribe(receiver: ActorRef, channel: Path)(implicit timeout: Timeout): Future[Unsubscribed.type] =
     (this ? Unsubscribe(receiver, channel)).mapTo[Unsubscribed.type]
 
-  /** Split "foo/bar..." into "foo" and (optionally) "bar..." */
-  private[actor] def channelParent(channel: String): Option[String] = channel.reverse.split("/", 2) match {
-    case Array(_, c) => Some(c.reverse)
-    case Array(_) => None
-  }
+  //  /** Split "foo/bar..." into "foo" and (optionally) "bar..." */
+  //  private[actor] def channelParent(channel: String): Path = channel.reverse.split("/", 2) match {
+  //    case Array(_, c) => Some(c.reverse)
+  //    case Array(_) => None
+  //  }
 
   // encapsulate the Router (it needs to be mutable to add/remove routees)
   class BroadcastRouter {
@@ -90,36 +96,36 @@ object PubSub2 {
 class PubSub2 extends Actor {
   import PubSub2._
 
-  val routers = mutable.Map[String,BroadcastRouter]()
+  val routers = mutable.Map[Path, BroadcastRouter]()
 
   override def receive = {
 
     // subscribe to one of my sub-channels
     case Subscribe(receiver, channel) =>
-      def sub(ch: Option[String]): Unit = {
-        routers.getOrElseUpdate(ch.orNull, new BroadcastRouter) += receiver
+      def sub(ch: Path): Unit = {
+        routers.getOrElseUpdate(ch, new BroadcastRouter) += receiver
         // subscribe to parent channels
-        ch map channelParent foreach sub
+        if (ch.nonEmpty) sub(ch.parent)
       }
       sub(channel)
       sender() ! Subscribed
 
     // un-subscribe from a sub-channel
     case Unsubscribe(receiver, channel) =>
-      def unsub(ch: Option[String]): Unit = {
-        routers get ch.orNull foreach { r =>
+      def unsub(ch: Path): Unit = {
+        routers get ch foreach { r =>
           r -= receiver
-          if (r.isEmpty) routers -= ch.orNull
+          if (r.isEmpty) routers -= ch
         }
         // un-subscribe from parent channels
-        ch map channelParent foreach unsub
+        if (ch.nonEmpty) unsub(ch.parent)
       }
       unsub(channel)
       sender() ! Unsubscribed
 
     // route a message
     case Message(m, channel) =>
-      routers get channel.orNull map (_.route(m, sender()))
+      routers get channel map (_.route(m, sender()))
 
     // avoid some of the dead-letter logging
     case deadLetter => log.debug(s"no route for: $deadLetter")

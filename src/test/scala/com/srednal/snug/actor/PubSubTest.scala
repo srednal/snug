@@ -3,61 +3,56 @@ package com.srednal.snug.actor
 import akka.actor.{ActorRef, ActorNotFound, Actor, ActorSystem}
 import akka.actor.ActorDSL._
 import akka.testkit.TestActorRef
+import com.srednal.snug.Path
 import org.scalatest._
 import scala.concurrent.TimeoutException
 import scala.concurrent.duration._
 import spray.util.pimpFuture
+import com.srednal.snug.Path._
 
 class PubSubTest extends WordSpec with Matchers {
   import PubSub._
-
   implicit val actorSystem = ActorSystem("test")
 
   "The PubSub object" should {
 
     val emptyActor = TestActorRef(new Actor {def receive = { case _ => }})
 
-    "construct a simple sub-channel message" in {
-      splitChannel("sub") shouldBe("sub", None)
-    }
-    "construct a sub-sub-channel message" in {
-      splitChannel("outer/inner/foo") shouldBe("outer", Some("inner/foo"))
-    }
 
     "reply Subscribed" in {
-      (PubSub ? Subscribe(emptyActor, None)).await shouldBe Subscribed
-      (PubSub ? Subscribe(emptyActor, None)).await shouldBe Subscribed
+      (PubSub ? Subscribe(emptyActor, ^)).await shouldBe Subscribed
+      (PubSub ? Subscribe(emptyActor, ^)).await shouldBe Subscribed
     }
 
     "reply Subscribed (via !)" in {
       implicit val in = inbox()
-      PubSub ! Subscribe(emptyActor, None)
+      PubSub ! Subscribe(emptyActor, ^)
       in.receive() shouldBe Subscribed
     }
 
     "reply Unsubscribed" in {
-      (PubSub ? Unsubscribe(emptyActor, None)).await shouldBe Unsubscribed
+      (PubSub ? Unsubscribe(emptyActor, ^)).await shouldBe Unsubscribed
     }
 
     "reply Subscribed for sub-channels" in {
-      (PubSub ? Subscribe(emptyActor, Some("outer"))).await shouldBe Subscribed
+      (PubSub ? Subscribe(emptyActor, Path("outer"))).await shouldBe Subscribed
     }
     "reply Subscribed for sub-sub-channels" in {
-      (PubSub ? Subscribe(emptyActor, Some("outer/inner"))).await shouldBe Subscribed
+      (PubSub ? Subscribe(emptyActor, "outer" / "inner")).await shouldBe Subscribed
     }
 
     "reply Unsubscribed for sub-channels" in {
-      (PubSub ? Unsubscribe(emptyActor, Some("outer"))).await shouldBe Unsubscribed
+      (PubSub ? Unsubscribe(emptyActor, ^ / "outer")).await shouldBe Unsubscribed
     }
     "reply Unsubscribed for sub-sub-channels" in {
-      (PubSub ? Unsubscribe(emptyActor, Some("outer/inner"))).await shouldBe Unsubscribed
+      (PubSub ? Unsubscribe(emptyActor, "outer" / "inner")).await shouldBe Unsubscribed
     }
 
     "reply subscribed from subscribe func" in {
-      subscribe(emptyActor, Some("outer/inner")).await shouldBe Subscribed
+      subscribe(emptyActor, "outer" / "inner").await shouldBe Subscribed
     }
     "reply unsubscribed from unsubscribe func" in {
-      unsubscribe(emptyActor, Some("outer/inner")).await shouldBe Unsubscribed
+      unsubscribe(emptyActor, "outer" / "inner").await shouldBe Unsubscribed
     }
   }
 
@@ -79,34 +74,34 @@ class PubSubTest extends WordSpec with Matchers {
 
     "deliver messages to subscribed actors" in {
       val listener = inbox()
-      subscribe(listener.receiver, None).await
+      subscribe(listener.receiver, ^).await
 
-      PubSub ! Message("hello there", None)
+      PubSub ! Message("hello there", ^)
       listener.receive() shouldBe "hello there"
     }
 
     "stop delivery to unsubscribed actors" in {
       val listener = inbox()
-      subscribe(listener.receiver, None).await
+      subscribe(listener.receiver, ^).await
 
-      PubSub ! Message("hello there you", None)
+      PubSub ! Message("hello there you", ^)
       listener.receive() shouldBe "hello there you"
 
-      PubSub ! Message("hello there more", None)
+      PubSub ! Message("hello there more", ^)
       listener.receive() shouldBe "hello there more"
 
-      unsubscribe(listener.receiver, None).await
+      unsubscribe(listener.receiver, ^).await
 
-      PubSub ! Message("hello there again", None)
+      PubSub ! Message("hello there again", ^)
       a[TimeoutException] should be thrownBy listener.receive(250.millis)
     }
 
 
     "deliver root messages to subscribed actors in sub-channels" in {
       val listener = inbox()
-      subscribe(listener.receiver, Some("test/sub")).await
+      subscribe(listener.receiver, "test" / "sub").await
 
-      PubSub ! Message("hello subs", Some("test"))
+      publish("hello subs", "test")
       listener.receive() shouldBe "hello subs"
     }
 
@@ -115,12 +110,12 @@ class PubSubTest extends WordSpec with Matchers {
       val listener1 = inbox()
       val listener2 = inbox()
       val listener3 = inbox()
-      subscribe(listener0.receiver, None).await
-      subscribe(listener1.receiver, Some("test1")).await
-      subscribe(listener2.receiver, Some("test1/sub1")).await
-      subscribe(listener3.receiver, Some("test1/sub1/sub2")).await
+      subscribe(listener0.receiver, ^).await
+      subscribe(listener1.receiver, "test1".asPath).await
+      subscribe(listener2.receiver, "test1" / "sub1").await
+      subscribe(listener3.receiver, "test1/sub1/sub2").await
 
-      PubSub ! Message("hello top", None)
+      publish("hello top", ^)
       listener0.receive() shouldBe "hello top"
       listener1.receive() shouldBe "hello top"
       listener2.receive() shouldBe "hello top"
@@ -132,12 +127,12 @@ class PubSubTest extends WordSpec with Matchers {
       val listener1 = inbox()
       val listener2 = inbox()
       val listener3 = inbox()
-      subscribe(listener0.receiver, None).await
-      subscribe(listener1.receiver, Some("test2")).await
-      subscribe(listener2.receiver, Some("test2/sub1")).await
-      subscribe(listener3.receiver, Some("test2/sub1/sub2")).await
+      subscribe(listener0.receiver, ^).await
+      subscribe(listener1.receiver, "test2".asPath).await
+      subscribe(listener2.receiver, "test2" / "sub1").await
+      subscribe(listener3.receiver, "test2/sub1/sub2").await
 
-      PubSub ! Message("hello down", Some("test2/sub1"))
+      publish("hello down", "test2" / "sub1")
       listener2.receive() shouldBe "hello down"
       listener3.receive() shouldBe "hello down"
       a[TimeoutException] should be thrownBy listener0.receive(250.millis)

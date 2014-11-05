@@ -44,6 +44,7 @@ class ConfigTest extends WordSpec with Matchers {
       config.as[Traversable[String]]("foo.names") shouldBe Traversable("foo", "bar", "baz")
       config.as[Iterable[String]]("foo.names") shouldBe Iterable("foo", "bar", "baz")
       config.as[List[String]]("foo.names") shouldBe List("foo", "bar", "baz")
+      config.as[Array[String]]("foo.names") shouldBe Array("foo", "bar", "baz")
     }
 
     "fetch a sub-config" in {
