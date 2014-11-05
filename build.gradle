@@ -97,37 +97,33 @@ def setupTest(Test t) {
         List<String> args = new ArrayList<String>()
         args.add('-oSTD')
         args.add("-PS${maxParallelForks}".toString())
-        args.add('-R')
-        args.add(t.testClassesDir.absolutePath)
+        args.addAll(['-R', t.testClassesDir.absolutePath])
 
-        if (t.reports.junitXml.enabled) {
-            args.add('-u')
-            args.add(t.reports.junitXml.entryPoint.absolutePath)
-        }
+        if (t.reports.junitXml.enabled) args.addAll(['-u', t.reports.junitXml.entryPoint.absolutePath])
+
         if (t.reports.html.enabled) {
-            args.add('-h')
             def dest = t.reports.html.destination
             dest.mkdirs()
-            args.add(dest.absolutePath)
+            args.addAll(['-h', dest.absolutePath])
         }
 
         // Run a single test with -Dtest=com.srednal.snug.FooTest
-        if (System.properties['test']) {
-            args.add('-s')
-            args.add(System.properties['test'])
-        }
+        if (System.properties['test']) args.addAll(['-s', System.getProperty('test')])
 
         javaExecHandleBuilder.setArgs(args)
-
         javaExecHandleBuilder.execute()
     }
 }
 
 gradle.taskGraph.afterTask { Task task, TaskState state ->
+    if (task == scalatest || task == testScoverage) {
+        def dir = task.reports.html.destination.path - "$project.projectDir.path/"
+        out.println("Test report: open $dir/index.html")
+    }
     if (task == testScoverage) {
         // make the path relative
         def dir = scoverage.reportDir.path - "$project.projectDir.path/"
-        println("Coverage report: open ${dir}/index.html")
+        println("Coverage report: open $dir/index.html")
     }
     if (task == checkScoverage) {
         def xml = checkScoverage.parser.parse(checkScoverage.cobertura)
