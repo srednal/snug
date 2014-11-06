@@ -1,6 +1,5 @@
 package com.srednal.snug
 
-// TODO ? - distinguish between absolute and relative paths (/foo/bar vs foo/bar) ?
 // TODO ? - distinguish between a "dir" and a "file" (foo/bar/ vs foo/bar) ?
 
 /**
@@ -14,6 +13,11 @@ sealed trait Path {
   def isEmpty: Boolean
   def nonEmpty = !isEmpty
 
+  def isAbsolute: Boolean = parent.isAbsolute
+
+  def asAbsolute: Path = parent.asAbsolute / name
+  def asRelative: Path = parent.asRelative / name
+
   def elements: Seq[String] = parent.elements :+ name
 
   /** this / "foo" -> this/path/foo */
@@ -26,10 +30,10 @@ sealed trait Path {
   /** this / that -> this/path/that/path */
   def /(p: Path): Path = p match {
     case ^ => this
+    case % => this
     case head / tail => this / head / tail
   }
 }
-
 
 object Path {
 
@@ -43,17 +47,35 @@ object Path {
     */
   case class /(override val parent: Path, override val name: String) extends Path {
     override val isEmpty = false
-    override lazy val toString = if (parent.isEmpty) s"/$name" else s"$parent/$name"
+    override lazy val toString = if (parent.isEmpty) s"$parent$name" else s"$parent/$name"
   }
 
-  /** The root Path:
+  /** The root Path (absolute):
+    *
+    * {{{ % / "foo" / "bar" }}}
+    */
+  case object % extends Path {
+    override val isAbsolute = true
+    override val asAbsolute = this
+    override val asRelative = ^
+    override val isEmpty = true
+    override def parent = throw new NoSuchElementException("parent of root % path")
+    override val name: String = "/"
+    override val elements = Nil
+    override val toString = name
+  }
+
+  /** The root Path (relative):
     *
     * {{{ ^ / "foo" / "bar" }}}
     */
   case object ^ extends Path {
+    override val isAbsolute = false
+    override val asAbsolute = %
+    override val asRelative = this
     override val isEmpty = true
-    override def parent = throw new NoSuchElementException("parent of root path")
-    override val name: String = "/"
+    override def parent = throw new NoSuchElementException("parent of root ^ path")
+    override val name: String = ""
     override val elements = Nil
     override val toString = name
   }
@@ -68,10 +90,10 @@ object Path {
   }
 
   /** Enable {{{Path("foo/bar")}}} */
-  def apply(p: String): Path = ^ / p
+  def apply(p: String): Path = (if (p startsWith "/") % else ^) / p
 
   /** Enable {{{Path("foo", "bar", ...)}}} */
-  def apply(head: String, tail: String*): Path = tail.foldLeft(^ / head)(_ / _)
+  def apply(head: String, tail: String*): Path = tail.foldLeft(apply(head))(_ / _)
 
   def apply(p: Seq[String]): Path = if (p.isEmpty) ^ else Path(p.head, p.tail: _*)
 
