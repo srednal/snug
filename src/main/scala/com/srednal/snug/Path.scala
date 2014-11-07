@@ -10,8 +10,7 @@ sealed trait Path {
 
   def parent: Path
   def name: String
-  def isEmpty: Boolean
-  def nonEmpty = !isEmpty
+  def isRoot = false
 
   def isAbsolute: Boolean = parent.isAbsolute
 
@@ -46,15 +45,13 @@ object Path {
     * etc.
     */
   case class /(override val parent: Path, override val name: String) extends Path {
-    override val isEmpty = false
-    override lazy val toString = if (parent.isEmpty) s"$parent$name" else s"$parent/$name"
+    override lazy val toString = if (parent.isRoot) s"$parent$name" else s"$parent/$name"
   }
-
 
   sealed trait Root extends Path {
     override val asAbsolute = %
     override val asRelative = ^
-    override val isEmpty = true
+    override val isRoot = true
     override def parent = throw new NoSuchElementException(s"parent of root path ($name)")
     override val elements = Nil
     override lazy val toString = name

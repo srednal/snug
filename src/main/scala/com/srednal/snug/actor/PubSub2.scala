@@ -105,7 +105,7 @@ class PubSub2 extends Actor {
       def sub(ch: Path): Unit = {
         routers.getOrElseUpdate(ch, new BroadcastRouter) += receiver
         // subscribe to parent channels
-        if (ch.nonEmpty) sub(ch.parent)
+        if (!ch.isRoot) sub(ch.parent)
       }
       sub(channel)
       sender() ! Subscribed
@@ -118,7 +118,7 @@ class PubSub2 extends Actor {
           if (r.isEmpty) routers -= ch
         }
         // un-subscribe from parent channels
-        if (ch.nonEmpty) unsub(ch.parent)
+        if (!ch.isRoot) unsub(ch.parent)
       }
       unsub(channel)
       sender() ! Unsubscribed

@@ -39,13 +39,14 @@ class PathTest extends WordSpec with Matchers {
       an[NoSuchElementException] should be thrownBy %.parent
       an[NoSuchElementException] should be thrownBy ^.parent
     }
-    "non-empty paths should not be empty" in {
-      Path("foo") should not be empty
+    "non-empty paths should not be root" in {
+      Path("foo") should have('root(false))
     }
-    "Root ^ should be empty" in {
-      ^ shouldBe empty
-      Path("") shouldBe empty
-      Path("/") shouldBe empty
+    "Roots should be root" in {
+      ^ should have('root(true))
+      % should have('root(true))
+      Path("") should have('root(true))
+      Path("/") should have('root(true))
     }
     "know absolute vs relative paths" in {
       ^ should have('absolute(false))
