@@ -50,34 +50,32 @@ object Path {
     override lazy val toString = if (parent.isEmpty) s"$parent$name" else s"$parent/$name"
   }
 
+
+  sealed trait Root extends Path {
+    override val asAbsolute = %
+    override val asRelative = ^
+    override val isEmpty = true
+    override def parent = throw new NoSuchElementException(s"parent of root path ($name)")
+    override val elements = Nil
+    override lazy val toString = name
+  }
+
   /** The root Path (absolute):
     *
     * {{{ % / "foo" / "bar" }}}
     */
-  case object % extends Path {
+  case object % extends Root {
     override val isAbsolute = true
-    override val asAbsolute = this
-    override val asRelative = ^
-    override val isEmpty = true
-    override def parent = throw new NoSuchElementException("parent of root % path")
-    override val name: String = "/"
-    override val elements = Nil
-    override val toString = name
+    override val name = "/"
   }
 
   /** The root Path (relative):
     *
     * {{{ ^ / "foo" / "bar" }}}
     */
-  case object ^ extends Path {
+  case object ^ extends Root {
     override val isAbsolute = false
-    override val asAbsolute = %
-    override val asRelative = this
-    override val isEmpty = true
-    override def parent = throw new NoSuchElementException("parent of root ^ path")
-    override val name: String = ""
-    override val elements = Nil
-    override val toString = name
+    override val name = ""
   }
 
   /**

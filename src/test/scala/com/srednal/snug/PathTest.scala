@@ -158,5 +158,12 @@ class PathTest extends WordSpec with Matchers {
       %.toString shouldBe "/"
       ^.toString shouldBe ""
     }
+
+    "equals vs root without bonking (symmetrically)" in {
+      Path("foo") should not be ^
+      Path("foo") should not be %
+      ^ should not be Path("foo")
+      % should not be Path("foo")
+    }
   }
 }
