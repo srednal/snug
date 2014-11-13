@@ -50,6 +50,7 @@ dependencies {
 
     testCompile group: 'org.scalatest', name: "scalatest_2.11", version: '2.2.2'
     testCompile group: 'com.typesafe.akka', name: 'akka-testkit_2.11', version: '2.3.6'
+    testCompile group: 'org.scalamock', name: 'scalamock-scalatest-support_2.11', version: '3.2'
     testRuntime group: 'org.pegdown', name: 'pegdown', version: '1.4.2'
 
     testRuntime group: 'ch.qos.logback', name: 'logback-classic', version: '1.1.2'
