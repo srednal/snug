@@ -2,7 +2,6 @@ package com.srednal.snug
 
 import com.srednal.snug.CaseClassReflect._
 import com.typesafe.config._
-import com.typesafe.config.ConfigValueType._
 import scala.reflect.runtime.universe._
 import akka.util.Timeout
 import scala.concurrent.duration._
@@ -28,55 +27,53 @@ package object config {
      * - String (for any config type).
      * - Int, Long, Double, etc (for config numbers).
      * - Boolean (for config booleans).
-     * - Duration, FiniteDuration, or Timeout (for config numbers or parsible strings).
-     * - List, Seq, Iterable, Traversable, or Set of any valid A type (for config lists).
-     * - Case Class, for config objects where the keys of path match the args of the case class primary constructor (and are some valid A type).
+     * - Duration, FiniteDuration, or Timeout (when config can parse it as a duration).
+     * - Traversable[A], Set[A], or Array[A] (for config lists).
+     * = Option[A] (None where no config at the path).
+     * - Case Class, for config objects where the keys of path match the args of the case class primary constructor (and each are some valid A type).
      */
     def as[A: TypeTag](path: String): A =
       try asTypeOf(typeOf[A], path).asInstanceOf[A]
       catch {
-        case NonFatal(e) if cfg.hasPath(path) =>
-          throw new IllegalArgumentException(s"Error fetching config path $path as ${typeOf[A]} from ${cfg.getValue(path).origin().description()}", e)
+        case NonFatal(e) =>
+          throw new IllegalArgumentException(s"Error fetching config path $path as ${typeOf[A]} from ${descr(path)}", e)
       }
 
-    private def asTypeOf(tpe: Type, path: String): Any /* <: tpe */ = tpe match {
+    private def descr(path:String) = if (cfg.hasPath(path)) cfg.getValue(path).origin().description() else cfg.origin().description()
 
-      // we can make anything into a string (object and list are ugly, but you asked for it)
-      case StringType => cfg.getValue(path).unwrapped().toString
+    private def asTypeOf(tpe: Type, path: String): Any /* <: tpe */ = {
+      // handle option specifically, as it needs to check hasPath, getValue may error
+      if (tpe <:< option_Type) if (cfg.hasPath(path)) Some(asTypeOf(tpe.typeArgs.head, path)) else None
+      else (tpe, cfg.getValue(path)) match {
 
-      case t if t <:< option_Type => if (cfg.hasPath(path)) Some(asTypeOf(t.typeArgs.head, path)) else None
-
-      case _ =>
-        val configValue = cfg.getValue(path)
-
-        (tpe, configValue, configValue.valueType()) match {
+          case (StringType, v) => v.unwrapped().toString
 
           // scala Duration and HOCON have slightly different string representations.
           // Could parse with Duration(v.as[String]), but keep the HOCON semantics:
-          case (t, _, STRING | NUMBER) if t <:< durationType => cfg.getDuration(path, NANOSECONDS).nanos
+          case (t, _) if t <:< durationType => cfg.getDuration(path, NANOSECONDS).nanos
 
-          case (TimeoutType, _, STRING | NUMBER) => Timeout(as[FiniteDuration](path))
+          case (TimeoutType, _) => Timeout(as[FiniteDuration](path))
 
           // support Set, Array specifically
-          case (t@TypeRef(_, _, arg :: Nil), v: ConfigList, _) if t <:< set_Type => asListOf(arg, v).toSet
+          case (t@TypeRef(_, _, arg :: Nil), v: ConfigList) if t <:< set_Type => asListOf(arg, v).toSet
 
-          case (t@TypeRef(_, _, arg :: Nil), v: ConfigList, _) if t <:< array_Type => asListOf(arg, v).toArray
+          case (t@TypeRef(_, _, arg :: Nil), v: ConfigList) if t <:< array_Type => asListOf(arg, v).toArray
 
           // other Traversables will be instances of List (so List, Seq, Iterable, Traversable will be ok)
-          case (t@TypeRef(_, _, arg :: Nil), v: ConfigList, _) if t <:< traversable_Type => asListOf(arg, v)
+          case (t@TypeRef(_, _, arg :: Nil), v: ConfigList) if t <:< traversable_Type => asListOf(arg, v)
 
           // case class mapping
-          case (t, v: ConfigObject, _) if typeIsCaseClass(t) =>
+          case (t, v: ConfigObject) if typeIsCaseClass(t) =>
             val vCfg: RichConfig = v.toConfig
             // fetch a config value for each case class param
             createForType(t)(caseParamTypesForType(t) map { case (n, p) => vCfg.asTypeOf(p, n)})
 
-          case (_, v, _) => v.unwrapped() // This will handle numbers and boolean ok.  For other stuff: wing it and see...
+          case (_, v) => v.unwrapped() // This will handle numbers and boolean ok.  For other stuff: wing it and see...
         }
     }
 
-    private def asListOf(of: Type, v: ConfigList): List[_ /* <: of */ ] =
-      v.asScala.toList map (_.atKey("X")) map (new RichConfig(_)) map (_.asTypeOf(of, "X"))
+    private def asListOf(tpe: Type, v: ConfigList): List[_ /* <: tpe */ ] =
+      v.asScala.toList map (_.atKey("X")) map (new RichConfig(_)) map (_.asTypeOf(tpe, "X"))
   }
 
   private val StringType = typeOf[String]
