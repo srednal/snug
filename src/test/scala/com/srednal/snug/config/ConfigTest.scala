@@ -1,6 +1,8 @@
 package com.srednal.snug.config
 
 import akka.util.Timeout
+import com.typesafe.config.Config
+import com.typesafe.config.ConfigException.WrongType
 import org.scalatest._
 import scala.concurrent.duration._
 
@@ -16,48 +18,48 @@ class ConfigTest extends WordSpec with Matchers {
   "Config" should {
 
     "fetch a string" in {
-      config.as[String]("foo.hello") shouldBe "World"
+      config[String]("foo.hello") shouldBe "World"
     }
     "fetch an int" in {
-      config.as[Int]("foo.number") shouldBe 42
+      config[Int]("foo.number") shouldBe 42
     }
     "fetch a long" in {
-      config.as[Long]("foo.number") shouldBe 42L
+      config[Long]("foo.number") shouldBe 42L
     }
     "fetch a double" in {
-      config.as[Double]("foo.pi") shouldBe 3.14
-      config.as[Double]("foo.number") shouldBe 42.0
+      config[Double]("foo.pi") shouldBe 3.14
+      config[Double]("foo.number") shouldBe 42.0
     }
     "fetch a boolean" in {
-      config.as[Boolean]("foo.yes") shouldBe true
+      config[Boolean]("foo.yes") shouldBe true
     }
     "fetch a duration" in {
-      config.as[Duration]("foo.interval") shouldBe 5.seconds
-      config.as[FiniteDuration]("foo.interval") shouldBe 5.seconds
-      config.as[Timeout]("foo.interval") shouldBe Timeout(5.seconds)
-      config.as[Duration]("foo.number") shouldBe 42.millis
-      config.as[Duration]("foo.pi") shouldBe 3.14.millis
+      config[Duration]("foo.interval") shouldBe 5.seconds
+      config[FiniteDuration]("foo.interval") shouldBe 5.seconds
+      config[Timeout]("foo.interval") shouldBe Timeout(5.seconds)
+      config[Duration]("foo.number") shouldBe 42.millis
+      config[Duration]("foo.pi") shouldBe 3.14.millis
     }
     "fetch a list of strings" in {
-      config.as[Seq[String]]("foo.names") shouldBe Seq("foo", "bar", "baz")
-      config.as[Set[String]]("foo.names") shouldBe Set("foo", "bar", "baz")
-      config.as[Traversable[String]]("foo.names") shouldBe Traversable("foo", "bar", "baz")
-      config.as[Iterable[String]]("foo.names") shouldBe Iterable("foo", "bar", "baz")
-      config.as[List[String]]("foo.names") shouldBe List("foo", "bar", "baz")
-      config.as[Array[String]]("foo.names") shouldBe Array("foo", "bar", "baz")
+      config[Seq[String]]("foo.names") shouldBe Seq("foo", "bar", "baz")
+      config[Set[String]]("foo.names") shouldBe Set("foo", "bar", "baz")
+      config[Traversable[String]]("foo.names") shouldBe Traversable("foo", "bar", "baz")
+      config[Iterable[String]]("foo.names") shouldBe Iterable("foo", "bar", "baz")
+      config[List[String]]("foo.names") shouldBe List("foo", "bar", "baz")
     }
 
     "fetch a sub-config" in {
-      config("foo").as[String]("hello") shouldBe "World"
+      val sc: Config = config[Config]("foo")
+      sc[String]("hello") shouldBe "World"
     }
 
     "fetch anything as a string" in {
-      config.as[String]("foo.hello") shouldBe "World"
-      config.as[String]("foo.number") shouldBe "42"
-      config.as[String]("foo.pi") shouldBe "3.14"
-      config.as[String]("foo.yes") shouldBe "true"
-      config.as[String]("foo.interval") shouldBe "5 seconds"
-      val f = config.as[String]("foo")
+      config[String]("foo.hello") shouldBe "World"
+      config[String]("foo.number") shouldBe "42"
+      config[String]("foo.pi") shouldBe "3.14"
+      config[String]("foo.yes") shouldBe "true"
+      config[String]("foo.interval") shouldBe "5 seconds"
+      val f: String = config("foo")
       f should {
         startWith("{") and
           endWith("}") and
@@ -66,8 +68,23 @@ class ConfigTest extends WordSpec with Matchers {
       }
     }
 
+
+    implicit object TestConfigHolderCvt extends ConfigConversion[TestConfigHolder] {
+      def apply(cfg: Config, path: String) = {
+        val c: Config = cfg(path)
+        TestConfigHolder(
+          c("number"),
+          c("pi"),
+          c("interval"),
+          c("hello"),
+          c("yes"),
+          c("names")
+        )
+      }
+    }
+
     "fetch as case class" in {
-      config.as[TestConfigHolder]("foo") shouldBe
+      config[TestConfigHolder]("foo") shouldBe
         TestConfigHolder(
           number = 42,
           pi = 3.14,
@@ -78,11 +95,11 @@ class ConfigTest extends WordSpec with Matchers {
     }
 
     "fetch as options" in {
-      config.as[Option[String]]("foo.hello") shouldBe Some("World")
-      config.as[Option[Double]]("foo.pi") shouldBe Some(3.14)
-      config.as[Option[List[String]]]("foo.names") shouldBe Some(List("foo", "bar", "baz"))
+      config[Option[String]]("foo.hello") shouldBe Some("World")
+      config[Option[Double]]("foo.pi") shouldBe Some(3.14)
+      config[Option[List[String]]]("foo.names") shouldBe Some(List("foo", "bar", "baz"))
 
-      config.as[Option[TestConfigHolder]]("foo") shouldBe Some(
+      config[Option[TestConfigHolder]]("foo") shouldBe Some(
         TestConfigHolder(
           number = 42,
           pi = 3.14,
@@ -91,18 +108,17 @@ class ConfigTest extends WordSpec with Matchers {
           yes = true,
           names = "foo" :: "bar" :: "baz" :: Nil))
 
-      config.as[Option[String]]("not.there") shouldBe None
-      config.as[Option[TestConfigHolder]]("bar") shouldBe None
-      config.as[Option[List[String]]]("baz") shouldBe None
+      config[Option[String]]("not.there") shouldBe None
+      config[Option[TestConfigHolder]]("bar") shouldBe None
+      config[Option[List[String]]]("baz") shouldBe None
     }
 
     "error in various ways" in {
-      // note that simply calling config.as[Int] will not error, as the Int is not unboxed until it is assigned a type
-      a[ClassCastException] should be thrownBy {
-        val i = config.as[Int]("foo.hello")
+      a[WrongType] should be thrownBy {
+        config[Int]("foo.hello")
       }
-      a[ClassCastException] should be thrownBy {
-        config.as[TestConfigHolder]("foo.hello")
+      a[WrongType] should be thrownBy {
+        config[TestConfigHolder]("foo.hello")
       }
     }
   }

@@ -34,7 +34,7 @@ object PubSub2 {
 
   val actorSystem = ActorSystem("srednal")
   implicit val executionEnv = actorSystem.dispatcher
-  implicit val timeout = config.as[Timeout]("pubsub.select-timeout")
+  implicit val timeout = config[Timeout]("pubsub.select-timeout")
 
   private val actor = actorSystem.actorOf(Props(new PubSub2), "pubsub2")
 
