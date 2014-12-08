@@ -26,7 +26,7 @@ object CaseClassReflect {
     runtimeMirror(classLoader).reflectClass(t.typeSymbol.asClass).reflectConstructor(ctr)(args: _*)
   }
 
-  def create[C: TypeTag](args: Seq[_]) = createForType(typeOf[C])(args)
+  def create[C: TypeTag](args: Seq[_]): C = createForType(typeOf[C])(args).asInstanceOf[C]
 
   private def classLoader = Thread.currentThread().getContextClassLoader match {
     case cl: ClassLoader => cl
