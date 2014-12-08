@@ -68,11 +68,6 @@ test.dependsOn scalatest
 setupTest(scalatest)
 setupTest(testScoverage)
 
-scoverage {
-    // There is a bug in something (gradle? scoverage? scoverage plugin?) where this can not be empty
-    excludedPackages = 'scoverAllOfTheThings'
-}
-
 compileScoverageScala.scalaCompileOptions.useAnt = true // cast GString to String error w/ scoverage running zinc
 
 def setupTest(Test t) {
