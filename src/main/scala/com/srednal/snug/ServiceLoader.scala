@@ -28,8 +28,8 @@ object ServicesLoader {
         Failure(e)
     }.toOption).flatten
 
-  def services[S: ClassTag]: Iterable[S] =
-    JServiceLoader.load(classTag[S].runtimeClass.asInstanceOf[Class[S]], classLoader).asScala
+  def services[S](implicit ct: ClassTag[S]): Iterable[S] =
+    JServiceLoader.load(ct.runtimeClass.asInstanceOf[Class[S]], classLoader).asScala
 
   def classLoader = Thread.currentThread().getContextClassLoader match {
     case cl: ClassLoader => cl
