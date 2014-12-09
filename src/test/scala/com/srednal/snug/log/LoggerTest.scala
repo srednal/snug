@@ -8,6 +8,10 @@ object LoggerTest {
   val testObjectLogger = Logger(this)
 }
 
+package object xyzzy {
+  val testPkgLogger = Logger(this)
+}
+
 class LoggerTest extends WordSpec with Matchers with MockFactory {
   import LoggerTest._
 
@@ -20,6 +24,9 @@ class LoggerTest extends WordSpec with Matchers with MockFactory {
     }
     "create a logger for an object" in {
       testObjectLogger should have('name("com.srednal.snug.log.LoggerTest"))
+    }
+    "create a logger for a package object" in {
+      xyzzy.testPkgLogger should have ('name("com.srednal.snug.log.xyzzy"))
     }
     "use slf4j by default" in {
       Logger(this) shouldBe a[Slf4jLogger]

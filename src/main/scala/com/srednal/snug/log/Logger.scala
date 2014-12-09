@@ -47,6 +47,7 @@ object Logger {
 
   def apply(name: String): Logger = name match {
     case null | "" => factory("") // root logger
+    case pkgName if pkgName.endsWith(".package$") => apply(pkgName dropRight 9)  // package object com.example.foo -> Logger("com.example.foo")
     case objName if objName.last == '$' => apply(objName.init) // allows object Foo { val logger = Logger(this) }
     case n => factory(n)
   }
