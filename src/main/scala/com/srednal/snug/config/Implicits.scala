@@ -5,6 +5,7 @@ import com.typesafe.config.Config
 import scala.concurrent.duration._
 import scala.collection.JavaConverters._
 import scala.language.implicitConversions
+import scala.util.Try
 
 trait Implicits extends ExtraImplicits {
 
@@ -31,6 +32,11 @@ trait Implicits extends ExtraImplicits {
 
   implicit def asOption[X](implicit inner: ConfigConversion[X]): ConfigConversion[Option[X]] = OptionConversion[X](inner)
 
+  case class TryConversion[X](inner: ConfigConversion[X]) extends ConfigConversion[Try[X]] {
+    def apply(cfg: Config, path: String) = Try(cfg[X](path)(inner))
+  }
+
+  implicit def asTry[X](implicit inner: ConfigConversion[X]): ConfigConversion[Try[X]] = TryConversion[X](inner)
 
   case class ListConversion[+X](inner: ConfigConversion[X]) extends ConfigConversion[List[X]] {
     def apply(cfg: Config, path: String) = cfg.getList(path).asScala.toList map (_.atKey("X")) map (new RichConfig(_)) map (_("X")(inner))

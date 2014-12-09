@@ -5,6 +5,7 @@ import com.typesafe.config.Config
 import com.typesafe.config.ConfigException.WrongType
 import org.scalatest._
 import scala.concurrent.duration._
+import scala.util.{Try, Success, Failure}
 
 case class TestConfigHolder(number: Int,
                             pi: Double,
@@ -113,7 +114,13 @@ class ConfigTest extends WordSpec with Matchers {
       config[Option[List[String]]]("baz") shouldBe None
     }
 
-    "error in various ways" in {
+    "fetch as Try" in {
+      config[Try[String]]("foo.hello") shouldBe Success("World")
+      config[Try[Double]]("foo.pi") shouldBe Success(3.14)
+      config[Try[Int]]("foo.hello") should have ('failure(true))
+      }
+
+      "error in various ways" in {
       a[WrongType] should be thrownBy {
         config[Int]("foo.hello")
       }

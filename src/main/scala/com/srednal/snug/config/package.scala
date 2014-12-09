@@ -1,8 +1,14 @@
 package com.srednal.snug
 
+import com.srednal.snug.log.Logger
 import com.typesafe.config._
 
+
+import scala.util.control.NonFatal
+
 package object config extends Implicits {
+
+  private val log = Logger(this)
 
   /** Global/default configuration */
   val config = ConfigFactory.load()
@@ -15,19 +21,37 @@ package object config extends Implicits {
     /**
      * Fetch the value at path converted/interpreted as a T.
      *
-     * As in:   config[String]("foo")
-     * or:      val foo: String = config("foo")
+     * As in:
+     * {{{
+     *   import com.srednal.snug.config._
+     *
+     *   val foo = config[String]("foo")
+     *   val bar: Int = config("bar")
+     *   val baz = config[Option[List[Boolean]]("baz")
+     * }}}
      *
      * Type T can be any of:
-     * - String (for any config type).
+     * - String (for any config type - note you probably won't like what this does with objects or lists).
      * - Int, Long, Double, etc (for config numbers).
      * - Boolean (for config booleans).
-     * - Duration, FiniteDuration, or Timeout (when config can parse it as a duration).
-     * - Traversable[T] or Set[T] (for config lists).
-     * - Option[T] (None where no config at the path).
-     * - Another Config object.
+     * - Duration, FiniteDuration, or Timeout (when config can parse it as a HOCON duration).
+     * - Traversable[T] or Set[T] (for config lists). Note: must be a list in the config (does not "promote" non-lists to one-element lists)
+     * - Option[T] - None where no config at the path (and does not log no path).
+     * - Try[T] - Failure if any error (no path, conversion, etc - and does not log)
+     * - A Config object (containing the Config under that path).
      * - Anything else (i.e. a case class) where a (custom) ConfigConversion[T] is provided (or implicitly available in scope).
+     *
+     * Except as noted above, errors (missing path, type conversion error, etc) are logged.
      */
-    def apply[T](path: String)(implicit cvt: ConfigConversion[T]): T = cvt(cfg, path)
+    def apply[T](path: String)(implicit cvt: ConfigConversion[T]): T =
+      try cvt(cfg, path)
+      catch {
+        case NonFatal(e) =>
+          val msg =
+            if (cfg hasPath path) s"Error parsing config at $path from ${cfg.getValue(path).origin().description()}"
+            else s"Config not defined at $path"
+          log.error(msg, e)
+          throw e
+      }
   }
 }
