@@ -30,19 +30,19 @@ trait Implicits extends ExtraImplicits {
     def apply(cfg: Config, path: String) = if (cfg.hasPath(path)) Some(cfg[X](path)(inner)) else None
   }
 
-  implicit def asOption[X](implicit inner: ConfigConversion[X]): ConfigConversion[Option[X]] = OptionConversion[X](inner)
+  implicit def optionConfigCvt[X](implicit inner: ConfigConversion[X]): ConfigConversion[Option[X]] = OptionConversion[X](inner)
 
   case class TryConversion[X](inner: ConfigConversion[X]) extends ConfigConversion[Try[X]] {
     def apply(cfg: Config, path: String) = Try(cfg[X](path)(inner))
   }
 
-  implicit def asTry[X](implicit inner: ConfigConversion[X]): ConfigConversion[Try[X]] = TryConversion[X](inner)
+  implicit def tryConfigCvt[X](implicit inner: ConfigConversion[X]): ConfigConversion[Try[X]] = TryConversion[X](inner)
 
   case class ListConversion[+X](inner: ConfigConversion[X]) extends ConfigConversion[List[X]] {
     def apply(cfg: Config, path: String) = cfg.getList(path).asScala.toList map (_.atKey("X")) map (new RichConfig(_)) map (_("X")(inner))
   }
 
-  implicit def asList[X](implicit inner: ConfigConversion[X]): ConfigConversion[List[X]] = ListConversion[X](inner)
+  implicit def listConfigCvt[X](implicit inner: ConfigConversion[X]): ConfigConversion[List[X]] = ListConversion[X](inner)
 
   implicit object NumberConversion extends ConfigConversion[Number] {
     def apply(cfg: Config, path: String) = cfg.getNumber(path)
@@ -79,5 +79,5 @@ trait ExtraImplicits {
     def apply(cfg: Config, path: String) = ListConversion(inner)(cfg, path).toSet
   }
 
-  implicit def asSet[X](implicit inner: ConfigConversion[X]): ConfigConversion[Set[X]] = SetConversion[X](inner)
+  implicit def setConfigCvt[X](implicit inner: ConfigConversion[X]): ConfigConversion[Set[X]] = SetConversion[X](inner)
 }
