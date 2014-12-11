@@ -1,7 +1,9 @@
 package com.srednal.snug.config
 
+import java.net.{InetSocketAddress, InetAddress, URL, URI}
+
 import akka.util.Timeout
-import com.typesafe.config.Config
+import com.typesafe.config.{ConfigFactory, Config}
 import com.typesafe.config.ConfigException.WrongType
 import org.scalatest._
 import scala.concurrent.duration._
@@ -27,9 +29,19 @@ class ConfigTest extends WordSpec with Matchers {
     "fetch a long" in {
       config[Long]("foo.number") shouldBe 42L
     }
+    "fetch a BigInt" in {
+      config[BigInt]("foo.number") shouldBe BigInt(42)
+    }
     "fetch a double" in {
       config[Double]("foo.pi") shouldBe 3.14
       config[Double]("foo.number") shouldBe 42.0
+    }
+    "fetch a float" in {
+      config[Float]("foo.pi") shouldBe 3.14f
+      config[Float]("foo.number") shouldBe 42.0f
+    }
+    "fetch a BigDecimal" in {
+      config[BigDecimal]("foo.pi") shouldBe BigDecimal("3.14")
     }
     "fetch a boolean" in {
       config[Boolean]("foo.yes") shouldBe true
@@ -84,7 +96,7 @@ class ConfigTest extends WordSpec with Matchers {
       }
     }
 
-    "fetch as case class" in {
+    "fetch with a custom conversion" in {
       config[TestConfigHolder]("foo") shouldBe
         TestConfigHolder(
           number = 42,
@@ -95,7 +107,7 @@ class ConfigTest extends WordSpec with Matchers {
           names = "foo" :: "bar" :: "baz" :: Nil)
     }
 
-    "fetch as options" in {
+    "fetch as Option" in {
       config[Option[String]]("foo.hello") shouldBe Some("World")
       config[Option[Double]]("foo.pi") shouldBe Some(3.14)
       config[Option[List[String]]]("foo.names") shouldBe Some(List("foo", "bar", "baz"))
@@ -117,11 +129,47 @@ class ConfigTest extends WordSpec with Matchers {
     "fetch as Try" in {
       config[Try[String]]("foo.hello") shouldBe Success("World")
       config[Try[Double]]("foo.pi") shouldBe Success(3.14)
-      config[Try[Int]]("foo.hello") should have ('failure(true))
-      }
+      config[Try[Int]]("foo.hello") should have('failure(true))
+    }
 
-      "error in various ways" in {
-      a[WrongType] should be thrownBy {
+    "fetch URI and URL" in {
+      ConfigFactory.parseString( """myUri: "http://example.com/foo" """)[URI]("myUri") shouldBe new URI("http://example.com/foo")
+      ConfigFactory.parseString( """myUrl: "http://example.com/foo" """)[URL]("myUrl") shouldBe new URL("http://example.com/foo")
+    }
+
+    "fetch InetAddress" in {
+      val c = ConfigFactory.parseString(
+        """
+        srednal: srednal.com
+        local: localhost
+        loop: "127.0.0.1"
+        gdns: "8.8.8.8"
+        """)
+
+      c[InetAddress]("srednal") shouldBe InetAddress.getByName("srednal.com")
+      c[InetAddress]("local") shouldBe InetAddress.getByName("localhost")
+      c[InetAddress]("loop") shouldBe InetAddress.getByName("127.0.0.1")
+      c[InetAddress]("gdns") shouldBe InetAddress.getByName("8.8.8.8")
+    }
+
+    "fetch InetSocketAddress from host:port" in {
+      val c = ConfigFactory.parseString(
+        """
+        hostPort: "srednal.com:80"
+        justPort: 8800
+        colonPort: ":123"
+        noPort: "example.com:nowhere"
+        noColon: foobar
+        """)
+
+      c[InetSocketAddress]("hostPort") shouldBe new InetSocketAddress("srednal.com", 80)
+      c[InetSocketAddress]("justPort") shouldBe new InetSocketAddress(8800)
+      a[WrongType] should be thrownBy c[InetSocketAddress]("noPort")
+      a[WrongType] should be thrownBy c[InetSocketAddress]("noColon")
+    }
+    
+    "error in reasonable ways" in {
+      a[NumberFormatException] should be thrownBy {
         config[Int]("foo.hello")
       }
       a[WrongType] should be thrownBy {

@@ -31,13 +31,16 @@ package object config extends Implicits {
      * }}}
      *
      * Type T can be any of:
-     * - String (for any config type - note you probably won't like what this does with objects or lists).
-     * - Int, Long, Double, etc (for config numbers).
+     * - String (for any config type - note you probably won't like what this does with objects and lists).
+     * - Int, Long, Double, Float, BigInt, BigDecimal (where can be parsed as such).
      * - Boolean (for config booleans).
      * - Duration, FiniteDuration, or Timeout (when config can parse it as a HOCON duration).
-     * - Traversable[T] or Set[T] (for config lists). Note: must be a list in the config (does not "promote" non-lists to one-element lists)
+     * - URI or URL.
+     * - InetAddress.
+     * - InetSocketAddress (from a string of the form host:port or an integer port).
+     * - Traversable[T] or Set[T] (for config lists). Note: must be a list in the config (does not "promote" non-lists to one-element lists).
      * - Option[T] - None where no config at the path (and does not log no path).
-     * - Try[T] - Failure if any error (no path, conversion, etc - and does not log)
+     * - Try[T] - Failure if any error (no path, conversion, etc - and does not log).
      * - A Config object (containing the Config under that path).
      * - Anything else (i.e. a case class) where a (custom) ConfigConversion[T] is provided (or implicitly available in scope).
      *
