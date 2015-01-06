@@ -10,6 +10,9 @@ import scala.concurrent.duration._
 import spray.util.pimpFuture
 import com.srednal.snug.Path._
 
+// IMO being explicit (fewer constants) is good in tests, import scoping is intentional
+// scalastyle:off magic.number multiple.string.literals import.grouping
+
 class PubSubTest extends WordSpec with Matchers {
   import PubSub._
   implicit val actorSystem = ActorSystem("test")

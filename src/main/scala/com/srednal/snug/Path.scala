@@ -5,6 +5,8 @@ package com.srednal.snug
 /**
  * A path DSL to construct /-delimited paths from strings separated with / (either as "foo/bar" or "foo" / "bar").
  */
+// allow a reasonable dsl style
+// scalastyle:off class.name method.name object.name
 sealed trait Path {
   import Path._
 
@@ -20,7 +22,7 @@ sealed trait Path {
   def elements: Seq[String] = parent.elements :+ name
 
   /** this / "foo" -> this/path/foo */
-  def /(p: String): Path = p split("/", 2) match {
+  def /(p: String): Path = p split(Slash, 2) match {
     case Array(head, tail) => this / head / tail
     case Array("") => this
     case Array(path) => new /(this, path)
@@ -36,6 +38,8 @@ sealed trait Path {
 
 object Path {
 
+  val Slash = "/"
+
   /** A non-empty Path.
     *
     * The naming as / allows matchers via things such as:
@@ -45,7 +49,7 @@ object Path {
     * etc.
     */
   case class /(override val parent: Path, override val name: String) extends Path {
-    override lazy val toString = if (parent.isRoot) s"$parent$name" else s"$parent/$name"
+    override lazy val toString = if (parent.isRoot) s"$parent$name" else s"$parent$Slash$name"
   }
 
   sealed trait Root extends Path {
@@ -63,7 +67,7 @@ object Path {
     */
   case object % extends Root {
     override val isAbsolute = true
-    override val name = "/"
+    override val name = Slash
   }
 
   /** The root Path (relative):
@@ -85,7 +89,7 @@ object Path {
   }
 
   /** Enable {{{Path("foo/bar")}}} */
-  def apply(p: String): Path = (if (p startsWith "/") % else ^) / p
+  def apply(p: String): Path = (if (p startsWith Slash) % else ^) / p
 
   /** Enable {{{Path("foo", "bar", ...)}}} */
   def apply(head: String, tail: String*): Path = tail.foldLeft(apply(head))(_ / _)

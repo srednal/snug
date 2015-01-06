@@ -90,8 +90,8 @@ trait Implicits extends ExtraImplicits {
   implicit object InetSocketAddressConversion extends ConfigConversion[InetSocketAddress] {
     private val HostPort = """^(?:(.+):)?([0-9]+)$""".r
     def apply(cfg: Config, path: String) = StringConversion(cfg, path) match {
-      case HostPort(null, port) => new InetSocketAddress(port.toInt)
-      case HostPort(host, port) => new InetSocketAddress(host, port.toInt)
+      case HostPort(host: String, port) => new InetSocketAddress(host, port.toInt)
+      case HostPort(_, port) => new InetSocketAddress(port.toInt)
       case v => throw new WrongType(cfg.getValue(path).origin(), s"$path is '$v' rather than a <host:port> or <port>")
     }
   }

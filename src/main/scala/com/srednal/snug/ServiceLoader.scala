@@ -23,7 +23,7 @@ object ServicesLoader {
    */
   def apply[S](implicit ct: ClassTag[S], logger: Logger = Logger.Silent): Iterable[S] =
     services[S].toTryStream.map(_.recoverWith {
-      case e =>
+      case e: Throwable =>
         logger.error(s"Error loading service for $ct", e)
         Failure(e)
     }.toOption).flatten

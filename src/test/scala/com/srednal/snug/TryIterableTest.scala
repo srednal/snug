@@ -4,6 +4,9 @@ import org.scalatest._
 
 import scala.util.{Failure, Success}
 
+// IMO being explicit (fewer constants) is good in tests, import scoping is intentional
+// scalastyle:off magic.number multiple.string.literals import.grouping
+
 class TryIterableTest extends WordSpec with Matchers {
 
   "The TryIterable" should {
@@ -16,7 +19,7 @@ class TryIterableTest extends WordSpec with Matchers {
       case class OddException(i: Int) extends Throwable(s"$i is odd")
       val iter = new Iterable[Int] {
         def iterator = new Iterator[Int] {
-          private var i = 0
+          private var i = 0  // scalastyle:ignore var.field
           def hasNext: Boolean = i < 5
           def next(): Int = {
             val result = i

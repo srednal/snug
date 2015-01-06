@@ -4,6 +4,7 @@ import java.io.Closeable
 import scala.io.Source
 import scala.util.control.NonFatal
 
+// Loan pattern
 object WithResource {
 
   def withSource[S <: Source, T](s: S)(f: S => T): T = withCloser[T](s.close())(f(s))

@@ -7,7 +7,7 @@ class Slf4jLoggerFactory extends LoggerFactory {
   slf4j.LoggerFactory.getILoggerFactory
 
   def apply(name: String) = new Slf4jLogger(name match {
-    case "" | null => slf4j.Logger.ROOT_LOGGER_NAME
+    case "" | null => slf4j.Logger.ROOT_LOGGER_NAME // scalastyle:ignore null
     case n => n
   })
 }

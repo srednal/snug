@@ -8,10 +8,12 @@ import java.math.MathContext
 buildscript {
     repositories {
         mavenCentral()
+        jcenter()
         maven { url "https://oss.sonatype.org/content/groups/public" }
     }
     dependencies {
         classpath group: 'org.scoverage', name: 'gradle-scoverage', version: '0.5-SNAPSHOT'
+        classpath group: 'org.github.ngbinh.scalastyle', name: 'gradle-scalastyle-plugin_2.11', version: '0.7.1'
     }
 }
 buildscript.repositories.each { project.repositories.add(it) }
@@ -23,9 +25,10 @@ project.version = project.properties.projectVersion
 // The main useful bits:
 
 apply plugin: 'scala'
+apply plugin: 'scalaStyle'
 apply plugin: 'scoverage'
 
-defaultTasks 'clean', 'checkScoverage'
+defaultTasks 'clean', 'scalaStyle', 'checkScoverage'
 
 dependencies {
     compile group: 'org.scala-lang', name: 'scala-library', version: '2.11.4'
@@ -52,6 +55,17 @@ dependencies {
 
 tasks.withType(ScalaCompile) {
     scalaCompileOptions.useAnt = false  // Zinc
+    scalaCompileOptions.deprecation = true
+    scalaCompileOptions.unchecked = true
+    scalaCompileOptions.additionalParameters = [ '-Xlint', '-Xfatal-warnings' ]
+}
+
+scalaStyle {
+    configLocation = 'scalastyle_config.xml'
+    includeTestSourceDirectory = true
+    failOnWarning = true
+    source = 'src/main/scala'
+    testSource = 'src/test/scala'
 }
 
 checkScoverage {

@@ -54,10 +54,10 @@ object PubSub2 {
   case class Message(msg: Any, channel: Path)
 
   /** Send a message (via tell) */
-  def !(message: Any)(implicit sender: ActorRef = Actor.noSender): Unit = actor ! message
+  def !(message: Any)(implicit sender: ActorRef = Actor.noSender): Unit = actor ! message // scalastyle:ignore method.name
 
   /** Send a message (via ask) */
-  def ?(message: Any)(implicit timeout: Timeout): Future[Any] = actor ? message
+  def ?(message: Any)(implicit timeout: Timeout): Future[Any] = actor ? message // scalastyle:ignore method.name
 
   /** Publish a message (simple async) */
   def publish(msg: Any, channelPath: String): Unit = publish(msg, channelPath.asPath)
@@ -82,9 +82,9 @@ object PubSub2 {
 
   // encapsulate the Router (it needs to be mutable to add/remove routees)
   class BroadcastRouter {
-    private var router = Router(BroadcastRoutingLogic())
-    def +=(routee: ActorRef): Unit = if (!contains(routee)) router = router.addRoutee(routee)
-    def -=(routee: ActorRef): Unit = router = router.removeRoutee(routee)
+    private var router = Router(BroadcastRoutingLogic()) // scalastyle:ignore var.field
+    def +=(routee: ActorRef): Unit = if (!contains(routee)) router = router.addRoutee(routee) // scalastyle:ignore method.name
+    def -=(routee: ActorRef): Unit = router = router.removeRoutee(routee) // scalastyle:ignore method.name
     def contains(routee: ActorRef): Boolean = router.routees contains ActorRefRoutee(routee)
     def isEmpty: Boolean = router.routees.isEmpty
     def nonEmpty: Boolean = !isEmpty
@@ -94,7 +94,7 @@ object PubSub2 {
 }
 
 class PubSub2 extends Actor {
-  import PubSub2._
+  import PubSub2._ // scalastyle:ignore import.grouping
 
   val routers = mutable.Map[Path, BroadcastRouter]()
 

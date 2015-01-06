@@ -10,6 +10,9 @@ import scala.concurrent.TimeoutException
 import scala.concurrent.duration._
 import spray.util.pimpFuture
 
+// IMO being explicit (fewer constants) is good in tests, import scoping is intentional
+// scalastyle:off magic.number multiple.string.literals import.grouping
+
 class PubSub2Test extends WordSpec with Matchers {
   import PubSub2._
 

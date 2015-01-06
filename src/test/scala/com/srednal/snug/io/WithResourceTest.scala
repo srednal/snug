@@ -4,6 +4,9 @@ import org.scalatest._
 import java.io.Closeable
 import scala.io.Source
 
+// IMO being explicit (fewer constants) is good in tests, import scoping is intentional
+// scalastyle:off magic.number multiple.string.literals import.grouping var.field null
+
 class WithResourceTest extends WordSpec with Matchers {
 
   "The WithResource" should {

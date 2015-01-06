@@ -4,6 +4,9 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest._
 import org.slf4j
 
+// IMO being explicit (fewer constants) is good in tests, import scoping is intentional
+// scalastyle:off magic.number multiple.string.literals import.grouping null
+
 object LoggerTest {
   val testObjectLogger = Logger(this)
 }
@@ -161,7 +164,7 @@ class LoggerTest extends WordSpec with Matchers with MockFactory {
 
   "a Logger" should {
     "allow messages to be lazy" in {
-      var evaluated: String = ""
+      var evaluated: String = ""  // scalastyle:ignore var.field
 
       Logger.Silent.trace({evaluated = "trace"; "omg"})
       Logger.Silent.trace({evaluated = "trace1"; "omg"}, new Throwable)

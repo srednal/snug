@@ -50,10 +50,11 @@ object PubSub {
   case class Message(msg: Any, channel: Path)
 
   /** Send a message (via tell) */
-  def !(message: Any)(implicit sender: ActorRef = Actor.noSender): Unit = rootActor ! message
+  def !(message: Any)(implicit sender: ActorRef = Actor.noSender): Unit = rootActor ! message // scalastyle:ignore method.name
+
 
   /** Send a message (via ask) */
-  def ?(message: Any)(implicit timeout: Timeout): Future[Any] = rootActor ? message
+  def ?(message: Any)(implicit timeout: Timeout): Future[Any] = rootActor ? message // scalastyle:ignore method.name
 
   /** Publish a message (simple async) */
   def publish(msg: Any, channelPath: String): Unit = publish(msg, channelPath.asPath)
@@ -74,9 +75,9 @@ object PubSub {
 
   // encapsulate the Router (it needs to be mutable to add/remove routees)
   class BroadcastRouter {
-    private var router = Router(BroadcastRoutingLogic())
-    def +=(routee: ActorRef): Unit = if (!contains(routee)) router = router.addRoutee(routee)
-    def -=(routee: ActorRef): Unit = router = router.removeRoutee(routee)
+    private var router = Router(BroadcastRoutingLogic()) // scalastyle:ignore var.field
+    def +=(routee: ActorRef): Unit = if (!contains(routee)) router = router.addRoutee(routee) // scalastyle:ignore method.name
+    def -=(routee: ActorRef): Unit = router = router.removeRoutee(routee) // scalastyle:ignore method.name
     def contains(routee: ActorRef): Boolean = router.routees contains ActorRefRoutee(routee)
     def isEmpty: Boolean = router.routees.isEmpty
     def nonEmpty: Boolean = !isEmpty
@@ -86,7 +87,7 @@ object PubSub {
 }
 
 class PubSub(val isRoot: Boolean = false) extends Actor {
-  import PubSub._
+  import PubSub._  // scalastyle:ignore import.grouping
 
   val isChild = !isRoot
 
@@ -114,7 +115,6 @@ class PubSub(val isRoot: Boolean = false) extends Actor {
       val sndr = sender()
       channelActor(outer, true) map {_ tell(Subscribe(receiver, Path(inner)), sndr)}
 
-
     // they don't like me anymore
     case Unsubscribe(receiver, ^) =>
       router -= receiver
@@ -128,12 +128,9 @@ class PubSub(val isRoot: Boolean = false) extends Actor {
       val sndr = sender()
       channelActor(outer, false) map {_ tell(Unsubscribe(receiver, Path(inner)), sndr)}
 
-
     case Terminated(child) =>
       // remove terminated child actor
       router -= child
-    //      if (isChild && router.isEmpty) context stop self
-
 
     // a message for me - route it
     case Message(m, ^) => self forward m
@@ -142,7 +139,6 @@ class PubSub(val isRoot: Boolean = false) extends Actor {
     case Message(m, Path(outer, inner@_*)) =>
       val sndr = sender()
       channelActor(outer, false) map {_ tell(Message(m, Path(inner)), sndr)}
-
 
     // base message routing
     // this will also send this raw message to my subchannel actors, as they are also registered as routes

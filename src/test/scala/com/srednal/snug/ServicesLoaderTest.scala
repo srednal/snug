@@ -4,6 +4,9 @@ import com.srednal.snug.log.Logger
 import org.scalatest._
 import scala.collection.mutable
 
+// IMO being explicit (fewer constants) is good in tests, import scoping is intentional
+// scalastyle:off magic.number multiple.string.literals import.grouping
+
 class ServicesLoaderTest extends WordSpec with Matchers {
 
   import testservices._

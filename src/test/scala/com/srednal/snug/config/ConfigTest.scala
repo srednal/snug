@@ -9,6 +9,9 @@ import org.scalatest._
 import scala.concurrent.duration._
 import scala.util.{Try, Success, Failure}
 
+// IMO being explicit (fewer constants) is good in tests, import scoping is intentional
+// scalastyle:off magic.number multiple.string.literals import.grouping
+
 case class TestConfigHolder(number: Int,
                             pi: Double,
                             interval: Duration,
@@ -167,7 +170,7 @@ class ConfigTest extends WordSpec with Matchers {
       a[WrongType] should be thrownBy c[InetSocketAddress]("noPort")
       a[WrongType] should be thrownBy c[InetSocketAddress]("noColon")
     }
-    
+
     "error in reasonable ways" in {
       a[NumberFormatException] should be thrownBy {
         config[Int]("foo.hello")

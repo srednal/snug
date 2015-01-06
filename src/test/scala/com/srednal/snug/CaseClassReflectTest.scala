@@ -5,6 +5,8 @@ import scala.reflect.runtime.universe._
 import scala.reflect.api._
 import scala.reflect._
 
+// IMO being explicit (fewer constants) is good in tests, import scoping is intentional
+// scalastyle:off magic.number multiple.string.literals import.grouping
 object CaseClassReflectTest {
 
   case class NoArgs()
@@ -31,11 +33,14 @@ object CaseClassReflectTest {
 
   case class TypeParam[P](p: P, sp: Seq[P], selfish: TypeParam[TypeParam[Seq[Thing]]])
 
+  // scalastyle:off method.name
   final class HandMade(val foo: String, val bar: Int) extends Product2[String, Int] {
     override def _1 = foo
     override def _2 = bar
     override def canEqual(that: Any) = that.getClass == classOf[HandMade]
   }
+
+  // scalastyle:on method.name
 
   object HandMade {
     def apply(foo: String, bar: Int) = new HandMade(foo, bar)
