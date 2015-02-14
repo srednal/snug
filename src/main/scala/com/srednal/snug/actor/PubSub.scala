@@ -6,9 +6,9 @@ import akka.routing.{ActorRefRoutee, BroadcastRoutingLogic, Router}
 import akka.util.Timeout
 import com.srednal.snug.Path
 import com.srednal.snug.Path._
-import com.srednal.snug.log.Logger
 import com.srednal.snug.config._
 import scala.concurrent.Future
+import com.typesafe.scalalogging.LazyLogging
 
 /**
  * A Pub-Sub hub to play with actors.
@@ -26,7 +26,6 @@ import scala.concurrent.Future
  * A message can be anything.
  */
 object PubSub {
-  val log = Logger(this)
 
   val actorSystem = ActorSystem("srednal")
   implicit val executionEnv = actorSystem.dispatcher
@@ -86,7 +85,7 @@ object PubSub {
 
 }
 
-class PubSub(val isRoot: Boolean = false) extends Actor {
+class PubSub(val isRoot: Boolean = false) extends Actor with LazyLogging {
   import PubSub._  // scalastyle:ignore import.grouping
 
   val isChild = !isRoot
@@ -145,6 +144,6 @@ class PubSub(val isRoot: Boolean = false) extends Actor {
     case m if router.nonEmpty => router.route(m, sender())
 
     // avoid some of the dead-letter logging
-    case deadLetter => log.debug(s"no route for: $deadLetter")
+    case deadLetter => logger.debug(s"no route for: $deadLetter")
   }
 }

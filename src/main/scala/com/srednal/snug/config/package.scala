@@ -1,14 +1,10 @@
 package com.srednal.snug
 
-import com.srednal.snug.log.Logger
-import com.typesafe.config._
-
-
 import scala.util.control.NonFatal
+import com.typesafe.config._
+import com.typesafe.scalalogging.LazyLogging
 
-package object config extends Implicits {
-
-  private val log = Logger(this)
+package object config extends Implicits with LazyLogging {
 
   /** Global/default configuration */
   val config = ConfigFactory.load()
@@ -53,7 +49,7 @@ package object config extends Implicits {
           val msg =
             if (cfg hasPath path) s"Error parsing config at $path from ${cfg.getValue(path).origin().description()}"
             else s"Config not defined at $path"
-          log.error(msg, e)
+          logger.error(msg, e)
           throw e
       }
   }

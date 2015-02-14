@@ -37,8 +37,11 @@ dependencies {
 
     compile group: 'com.typesafe.akka', name: 'akka-actor_2.11', version: '2.3.8'
     compile group: 'com.typesafe', name: 'config', version: '1.2.1'
+
+    compile group: 'com.typesafe.scala-logging', name: 'scala-logging_2.11', version: '3.1.0'
     compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.10'
 
+    testRuntime group: 'ch.qos.logback', name: 'logback-classic', version: '1.1.2'
 
     // test
     testCompile group: 'org.scalatest', name: "scalatest_2.11", version: '2.2.3'
@@ -48,7 +51,6 @@ dependencies {
 
     testCompile group: 'org.scalamock', name: 'scalamock-scalatest-support_2.11', version: '3.2.1'
     testRuntime group: 'org.pegdown', name: 'pegdown', version: '1.4.2'
-    testRuntime group: 'ch.qos.logback', name: 'logback-classic', version: '1.1.2'
 
     scoverage group: 'org.scoverage', name: 'scalac-scoverage-plugin_2.11', version: '1.0.2'
     scoverage group: 'org.scoverage', name: 'scalac-scoverage-runtime_2.11', version: '1.0.2'
@@ -58,7 +60,7 @@ tasks.withType(ScalaCompile) {
     scalaCompileOptions.useAnt = false  // Zinc
     scalaCompileOptions.deprecation = true
     scalaCompileOptions.unchecked = true
-    scalaCompileOptions.additionalParameters = [ '-Xlint', '-Xfatal-warnings' ]
+    scalaCompileOptions.additionalParameters = [ '-feature', '-Xlint', '-Xfatal-warnings' ]
 }
 
 scalaStyle {

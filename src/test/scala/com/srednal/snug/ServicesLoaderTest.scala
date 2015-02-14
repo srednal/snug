@@ -1,8 +1,6 @@
 package com.srednal.snug
 
-import com.srednal.snug.log.Logger
 import org.scalatest._
-import scala.collection.mutable
 
 // IMO being explicit (fewer constants) is good in tests, import scoping is intentional
 // scalastyle:off magic.number multiple.string.literals import.grouping
@@ -48,36 +46,6 @@ class ServicesLoaderTest extends WordSpec with Matchers {
       ServiceLoader[NotThere] shouldBe empty
     }
 
-    "log errors to implicit logger" in {
-      val errors = mutable.Buffer[Option[Throwable]]()
-      implicit val testLogger = new Logger {
-        override def error(m: => String, t: Option[Throwable]) = errors += t
-        override def trace(m: => String, t: Option[Throwable]) = ???
-        override def debug(m: => String, t: Option[Throwable]) = ???
-        override def info(m: => String, t: Option[Throwable]) = ???
-        override def warn(m: => String, t: Option[Throwable]) = ???
-      }
-
-      val s = ServicesLoader[Test]
-
-      // initially only log errors up to the first success
-      errors should have('size(1))
-      errors(0).get.getMessage should include("Provider com.srednal.snug.testservices.TestErr1 could not be instantiated")
-
-      // now finish loading all the rest
-      s.toStream.force should have('size(3))
-
-      errors should have('size(5))
-      errors(0).get.getMessage should include("Provider com.srednal.snug.testservices.TestErr1 could not be instantiated")
-      errors(0).get.getCause.getMessage should include("from TestErr1")
-      errors(1).get.getMessage should include("Provider com.srednal.snug.testservices.NoneSuch not found")
-      errors(2).get.getMessage should include("Provider com.srednal.snug.testservices.TestErr2 could not be instantiated")
-      errors(2).get.getCause.getMessage should include("from TestErr2")
-      errors(3).get.getMessage should include("Provider com.srednal.snug.testservices.Test could not be instantiated")
-      errors(3).get.getCause shouldBe a[InstantiationException]
-      errors(4).get.getMessage should include("Provider com.srednal.snug.testservices.TestErr3 could not be instantiated")
-      errors(4).get.getCause.getMessage should include("from TestErr3")
-    }
   }
 
   "The ServiceLoader" should {
@@ -87,22 +55,6 @@ class ServicesLoaderTest extends WordSpec with Matchers {
     }
     "None for non-exist services" in {
       ServiceLoader[NotThere] shouldBe None
-    }
-
-    "log errors to implicit logger" in {
-      val errors = mutable.Buffer[Option[Throwable]]()
-      implicit val testLogger = new Logger {
-        override def error(m: => String, t: Option[Throwable]) = errors += t
-        override def trace(m: => String, t: Option[Throwable]) = ???
-        override def debug(m: => String, t: Option[Throwable]) = ???
-        override def info(m: => String, t: Option[Throwable]) = ???
-        override def warn(m: => String, t: Option[Throwable]) = ???
-      }
-
-      ServiceLoader[Test]
-
-      errors should have('size(1))
-      errors(0).get.getMessage should include("Provider com.srednal.snug.testservices.TestErr1 could not be instantiated")
     }
   }
 }

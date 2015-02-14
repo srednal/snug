@@ -1,18 +1,18 @@
 package com.srednal.snug
 
 import com.srednal.snug.TryIterable._
-import com.srednal.snug.log.Logger
 import java.util.{ServiceLoader => JServiceLoader}
 import scala.collection.JavaConverters._
 import scala.reflect._
 import scala.util.Failure
+import com.typesafe.scalalogging.LazyLogging
 
 /**
  * Implementations of MyService (generally a trait) can be listed in META-INF/services/com.srednal.snug.MyService
  * Implementations must have a no-args constructor and otherwise be able to configure themselves (see com.srednal.snug.config).
  * If further configuration or runtime information is needed, create a factory or builder as a service.
  */
-object ServicesLoader {
+object ServicesLoader extends LazyLogging {
 
   /**
    * Fetch the service implementations.
@@ -21,7 +21,7 @@ object ServicesLoader {
    * Any services which fail creation will have the exception logged and will not appear in this iterable.
    * Each call to this method will instantiate a new set of service instances.
    */
-  def apply[S](implicit ct: ClassTag[S], logger: Logger = Logger.Silent): Iterable[S] =
+  def apply[S](implicit ct: ClassTag[S]): Iterable[S] =
     services[S].toTryStream.map(_.recoverWith {
       case e: Throwable =>
         logger.error(s"Error loading service for $ct", e)
@@ -45,5 +45,5 @@ object ServiceLoader {
    * Generally expected to be used when there should be only one useful service of a given type.
    * Each call to this method will instantiate a new instance of the service.
    */
-  def apply[S](implicit ct: ClassTag[S], logger: Logger = Logger.Silent): Option[S] = ServicesLoader[S].headOption
+  def apply[S](implicit ct: ClassTag[S]): Option[S] = ServicesLoader[S].headOption
 }
