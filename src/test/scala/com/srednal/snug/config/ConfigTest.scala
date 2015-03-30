@@ -7,7 +7,7 @@ import com.typesafe.config.{ConfigFactory, Config}
 import com.typesafe.config.ConfigException.WrongType
 import org.scalatest._
 import scala.concurrent.duration._
-import scala.util.{Try, Success, Failure}
+import scala.util.{Try, Success}
 
 // IMO being explicit (fewer constants) is good in tests, import scoping is intentional
 // scalastyle:off magic.number multiple.string.literals import.grouping
@@ -17,7 +17,7 @@ case class TestConfigHolder(number: Int,
                             interval: Duration,
                             hello: String,
                             yes: Boolean,
-                            names: List[String])
+                            names: Seq[String])
 
 class ConfigTest extends WordSpec with Matchers {
 
@@ -56,12 +56,14 @@ class ConfigTest extends WordSpec with Matchers {
       config[Duration]("foo.number") shouldBe 42.millis
       config[Duration]("foo.pi") shouldBe 3.14.millis
     }
-    "fetch a list of strings" in {
-      config[Seq[String]]("foo.names") shouldBe Seq("foo", "bar", "baz")
+    "fetch a collection of strings" in {
+      config[Seq[String]]("foo.names") shouldBe Seq("foo", "bar", "baz", "foo")
+      config[Traversable[String]]("foo.names") shouldBe Traversable("foo", "bar", "baz", "foo")
+      config[Iterable[String]]("foo.names") shouldBe Iterable("foo", "bar", "baz", "foo")
+      config[List[String]]("foo.names") shouldBe List("foo", "bar", "baz", "foo")
+
+      // sets have unique values
       config[Set[String]]("foo.names") shouldBe Set("foo", "bar", "baz")
-      config[Traversable[String]]("foo.names") shouldBe Traversable("foo", "bar", "baz")
-      config[Iterable[String]]("foo.names") shouldBe Iterable("foo", "bar", "baz")
-      config[List[String]]("foo.names") shouldBe List("foo", "bar", "baz")
     }
 
     "fetch a sub-config" in {
@@ -107,13 +109,13 @@ class ConfigTest extends WordSpec with Matchers {
           interval = 5.seconds,
           hello = "World",
           yes = true,
-          names = "foo" :: "bar" :: "baz" :: Nil)
+          names = "foo" :: "bar" :: "baz" :: "foo" :: Nil)
     }
 
     "fetch as Option" in {
       config[Option[String]]("foo.hello") shouldBe Some("World")
       config[Option[Double]]("foo.pi") shouldBe Some(3.14)
-      config[Option[List[String]]]("foo.names") shouldBe Some(List("foo", "bar", "baz"))
+      config[Option[List[String]]]("foo.names") shouldBe Some(List("foo", "bar", "baz", "foo"))
 
       config[Option[TestConfigHolder]]("foo") shouldBe Some(
         TestConfigHolder(
@@ -122,7 +124,7 @@ class ConfigTest extends WordSpec with Matchers {
           interval = 5.seconds,
           hello = "World",
           yes = true,
-          names = "foo" :: "bar" :: "baz" :: Nil))
+          names = "foo" :: "bar" :: "baz" :: "foo" :: Nil))
 
       config[Option[String]]("not.there") shouldBe None
       config[Option[TestConfigHolder]]("bar") shouldBe None
