@@ -18,7 +18,7 @@ import com.typesafe.config.Config
  *   }
  * }}}
  */
-@implicitNotFound("No member of type class ConfigConversion found for type ${X}")
+@implicitNotFound("No type class ConfigConversion found for type ${X}")
 trait ConfigConversion[+X] {
   def get(cfg: Config, path: String): X
 }
