@@ -86,7 +86,7 @@ class ConfigTest extends WordSpec with Matchers {
 
 
     implicit object TestConfigHolderCvt extends ConfigConversion[TestConfigHolder] {
-      def apply(cfg: Config, path: String) = {
+      def get(cfg: Config, path: String) = {
         val c: Config = cfg(path)
         TestConfigHolder(
           c("number"),

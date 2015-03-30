@@ -38,12 +38,12 @@ package object config extends Implicits with LazyLogging {
      * - Option[T] - None where no config at the path (and does not log no path).
      * - Try[T] - Failure if any error (no path, conversion, etc - and does not log).
      * - A Config object (containing the Config under that path).
-     * - Anything else (i.e. a case class) where a (custom) ConfigConversion[T] is provided (or implicitly available in scope).
+     * - Anything else (i.e. a case class) where a ConfigConversion[T] type class is in scope.
      *
      * Except as noted above, errors (missing path, type conversion error, etc) are logged.
      */
-    def apply[T](path: String)(implicit cvt: ConfigConversion[T]): T =
-      try cvt(cfg, path)
+    def apply[T: ConfigConversion](path: String): T =
+      try ConfigConversion[T].get(cfg, path)
       catch {
         case NonFatal(e) =>
           val msg =
