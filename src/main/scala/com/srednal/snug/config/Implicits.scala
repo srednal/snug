@@ -14,34 +14,8 @@ trait Implicits extends ContainerImplicits {
 
   private def str(cfg: Config, path: String) = cfg.getValue(path).unwrapped().toString
 
-  implicit object SubPathConversion extends ConfigConversion[Config] {
-    override def get(cfg: Config, path: String) = cfg.getConfig(path)
-  }
-
   implicit object StringConversion extends ConfigConversion[String] {
     override def get(cfg: Config, path: String) = str(cfg, path)
-  }
-
-  implicit object DurationConversion extends ConfigConversion[FiniteDuration] {
-    override def get(cfg: Config, path: String) = cfg.getDuration(path, NANOSECONDS).nanos
-  }
-
-  implicit object TimeoutConversion extends ConfigConversion[Timeout] {
-    override def get(cfg: Config, path: String) = DurationConversion.get(cfg, path)
-  }
-
-  private def dec(cfg: Config, path: String) = BigDecimal(str(cfg, path))
-
-  implicit object BigDecimalConversion extends ConfigConversion[BigDecimal] {
-    override def get(cfg: Config, path: String) = dec(cfg, path)
-  }
-
-  implicit object DoubleConversion extends ConfigConversion[Double] {
-    override def get(cfg: Config, path: String) = dec(cfg, path).doubleValue()
-  }
-
-  implicit object FloatConversion extends ConfigConversion[Float] {
-    override def get(cfg: Config, path: String) = dec(cfg, path).floatValue()
   }
 
   private def int(cfg: Config, path: String) = BigInt(str(cfg, path))
@@ -58,9 +32,32 @@ trait Implicits extends ContainerImplicits {
     override def get(cfg: Config, path: String) = int(cfg, path).intValue()
   }
 
+  private def dec(cfg: Config, path: String) = BigDecimal(str(cfg, path))
+
+  implicit object BigDecimalConversion extends ConfigConversion[BigDecimal] {
+    override def get(cfg: Config, path: String) = dec(cfg, path)
+  }
+
+  implicit object DoubleConversion extends ConfigConversion[Double] {
+    override def get(cfg: Config, path: String) = dec(cfg, path).doubleValue()
+  }
+
+  implicit object FloatConversion extends ConfigConversion[Float] {
+    override def get(cfg: Config, path: String) = dec(cfg, path).floatValue()
+  }
+
   implicit object BooleanConversion extends ConfigConversion[Boolean] {
     override def get(cfg: Config, path: String) = cfg.getBoolean(path)
   }
+
+  implicit object DurationConversion extends ConfigConversion[FiniteDuration] {
+    override def get(cfg: Config, path: String) = cfg.getDuration(path, NANOSECONDS).nanos
+  }
+
+  implicit object TimeoutConversion extends ConfigConversion[Timeout] {
+    override def get(cfg: Config, path: String) = DurationConversion.get(cfg, path)
+  }
+
 
   implicit object URIConversion extends ConfigConversion[URI] {
     override def get(cfg: Config, path: String) = new URI(str(cfg, path))
@@ -81,6 +78,10 @@ trait Implicits extends ContainerImplicits {
       case HostPort(_, port) => new InetSocketAddress(port.toInt)
       case v => throw new WrongType(cfg.getValue(path).origin(), s"$path is '$v' rather than a <host:port> or <port>")
     }
+  }
+
+  implicit object SubPathConversion extends ConfigConversion[Config] {
+    override def get(cfg: Config, path: String) = cfg.getConfig(path)
   }
 
 }
@@ -118,4 +119,5 @@ trait LowerPriorityContainerImplicits {
   }
 
   implicit def configConvertForSet[X: ConfigConversion]: ConfigConversion[Set[X]] = new SetConversion[X]
+
 }
