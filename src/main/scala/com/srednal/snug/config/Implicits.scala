@@ -2,90 +2,59 @@ package com.srednal.snug.config
 
 import scala.collection.JavaConverters._
 import scala.concurrent.duration._
+import scala.language.implicitConversions
 import scala.util.Try
 import java.net.{InetAddress, InetSocketAddress, URI, URL}
 import akka.util.Timeout
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigException.WrongType
 
-import scala.language.implicitConversions
-
 trait Implicits extends ContainerImplicits {
 
-  private def str(cfg: Config, path: String) = cfg.getValue(path).unwrapped().toString
-
-  implicit object StringConversion extends ConfigConversion[String] {
-    override def get(cfg: Config, path: String) = str(cfg, path)
+  private implicit class Chain[A, B](a: (Config, String) => A) {
+    // scalastyle:ignore method.name
+    def |>(b: A => B) = (cfg: Config, path: String) => b(a(cfg, path))
   }
 
-  private def int(cfg: Config, path: String) = BigInt(str(cfg, path))
+  implicit object StringConversion extends ConfigConversionAux[String](_.getValue(_).unwrapped().toString)
 
-  implicit object BigIntConversion extends ConfigConversion[BigInt] {
-    override def get(cfg: Config, path: String) = int(cfg, path)
-  }
+  implicit object BigIntConversion extends ConfigConversionAux[BigInt](StringConversion.g |> BigInt.apply)
 
-  implicit object LongConversion extends ConfigConversion[Long] {
-    override def get(cfg: Config, path: String) = int(cfg, path).longValue()
-  }
+  implicit object LongConversion extends ConfigConversionAux[Long](BigIntConversion.g |> (_.longValue()))
 
-  implicit object IntConversion extends ConfigConversion[Int] {
-    override def get(cfg: Config, path: String) = int(cfg, path).intValue()
-  }
+  implicit object IntConversion extends ConfigConversionAux[Int](BigIntConversion.g |> (_.intValue()))
 
-  private def dec(cfg: Config, path: String) = BigDecimal(str(cfg, path))
+  implicit object BigDecimalConversion extends ConfigConversionAux[BigDecimal](StringConversion.g |> BigDecimal.apply)
 
-  implicit object BigDecimalConversion extends ConfigConversion[BigDecimal] {
-    override def get(cfg: Config, path: String) = dec(cfg, path)
-  }
+  implicit object DoubleConversion extends ConfigConversionAux[Double](BigDecimalConversion.g |> (_.doubleValue()))
 
-  implicit object DoubleConversion extends ConfigConversion[Double] {
-    override def get(cfg: Config, path: String) = dec(cfg, path).doubleValue()
-  }
+  implicit object FloatConversion extends ConfigConversionAux[Float](BigDecimalConversion.g |> (_.floatValue()))
 
-  implicit object FloatConversion extends ConfigConversion[Float] {
-    override def get(cfg: Config, path: String) = dec(cfg, path).floatValue()
-  }
+  implicit object BooleanConversion extends ConfigConversionAux[Boolean](_ getBoolean _)
 
-  implicit object BooleanConversion extends ConfigConversion[Boolean] {
-    override def get(cfg: Config, path: String) = cfg.getBoolean(path)
-  }
+  implicit object DurationConversion extends ConfigConversionAux[FiniteDuration](_.getDuration(_, NANOSECONDS).nanos)
 
-  implicit object DurationConversion extends ConfigConversion[FiniteDuration] {
-    override def get(cfg: Config, path: String) = cfg.getDuration(path, NANOSECONDS).nanos
-  }
+  implicit object TimeoutConversion extends ConfigConversionAux[Timeout](DurationConversion.get)
 
-  implicit object TimeoutConversion extends ConfigConversion[Timeout] {
-    override def get(cfg: Config, path: String) = DurationConversion.get(cfg, path)
-  }
+  implicit object URIConversion extends ConfigConversionAux[URI](StringConversion.g |> (new URI(_)))
 
+  implicit object URLConversion extends ConfigConversionAux[URL](URIConversion.g |> (_.toURL))
 
-  implicit object URIConversion extends ConfigConversion[URI] {
-    override def get(cfg: Config, path: String) = new URI(str(cfg, path))
-  }
+  implicit object InetAddressConversion extends ConfigConversionAux[InetAddress](StringConversion.g |> InetAddress.getByName)
 
-  implicit object URLConversion extends ConfigConversion[URL] {
-    override def get(cfg: Config, path: String) = URIConversion.get(cfg, path).toURL
-  }
+  private val HostPortMatcher = """^(?:(.+):)?([0-9]+)$""".r
 
-  implicit object InetAddressConversion extends ConfigConversion[InetAddress] {
-    override def get(cfg: Config, path: String) = InetAddress.getByName(str(cfg, path))
-  }
-
-  implicit object InetSocketAddressConversion extends ConfigConversion[InetSocketAddress] {
-    private val HostPort = """^(?:(.+):)?([0-9]+)$""".r
-    override def get(cfg: Config, path: String) = str(cfg, path) match {
-      case HostPort(host: String, port) => new InetSocketAddress(host, port.toInt)
-      case HostPort(_, port) => new InetSocketAddress(port.toInt)
+  implicit object InetSocketAddressConversion extends ConfigConversionAux[InetSocketAddress]((cfg, path) =>
+    StringConversion.get(cfg, path) match {
+      case HostPortMatcher(host: String, port) => new InetSocketAddress(host, port.toInt)
+      case HostPortMatcher(_, port) => new InetSocketAddress(port.toInt)
       case v => throw new WrongType(cfg.getValue(path).origin(), s"$path is '$v' rather than a <host:port> or <port>")
     }
-  }
+  )
 
-  implicit object SubPathConversion extends ConfigConversion[Config] {
-    override def get(cfg: Config, path: String) = cfg.getConfig(path)
-  }
+  implicit object SubPathConversion extends ConfigConversionAux[Config](_ getConfig _)
 
 }
-
 
 trait ContainerImplicits extends LowerPriorityContainerImplicits {
 
@@ -107,7 +76,6 @@ trait ContainerImplicits extends LowerPriorityContainerImplicits {
   }
 
   implicit def configConvertForList[X: ConfigConversion]: ConfigConversion[List[X]] = new ListConversion[X]
-
 }
 
 trait LowerPriorityContainerImplicits {
@@ -119,5 +87,4 @@ trait LowerPriorityContainerImplicits {
   }
 
   implicit def configConvertForSet[X: ConfigConversion]: ConfigConversion[Set[X]] = new SetConversion[X]
-
 }

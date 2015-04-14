@@ -24,5 +24,12 @@ trait ConfigConversion[+X] {
 }
 
 object ConfigConversion {
-  def apply[X: ConfigConversion]: ConfigConversion[X] = implicitly[ConfigConversion[X]]
+  @inline def apply[X: ConfigConversion]: ConfigConversion[X] = implicitly[ConfigConversion[X]]
 }
+
+
+/** Move the get method into constructor args */
+abstract class ConfigConversionAux[T](val g: (Config, String) => T) extends ConfigConversion[T] {
+  override def get(cfg: Config, path: String) = g(cfg,path)
+}
+
