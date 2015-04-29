@@ -60,7 +60,7 @@ tasks.withType(ScalaCompile) {
     scalaCompileOptions.useAnt = false  // Zinc
     scalaCompileOptions.deprecation = true
     scalaCompileOptions.unchecked = true
-    scalaCompileOptions.additionalParameters = ['-feature', '-Xlint', '-Xfatal-warnings']
+    scalaCompileOptions.additionalParameters = ['-feature', '-Xlint', '-Xfatal-warnings'] // , '-Ymacro-debug-lite']
 }
 
 scalaStyle {
