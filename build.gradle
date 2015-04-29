@@ -28,7 +28,7 @@ apply plugin: 'scala'
 apply plugin: 'scalaStyle'
 apply plugin: 'scoverage'
 
-defaultTasks 'clean', 'scalaStyle', 'checkScoverage'
+defaultTasks 'clean', 'checkScoverage', 'scalaStyle'
 
 dependencies {
     compile group: 'org.scala-lang', name: 'scala-library', version: '2.11.6'
