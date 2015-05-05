@@ -85,8 +85,6 @@ test.dependsOn scalatest
 setupTest(scalatest)
 setupTest(testScoverage)
 
-compileScoverageScala.scalaCompileOptions.useAnt = true // cast GString to String error w/ scoverage running zinc
-
 def setupTest(Test t) {
     t.systemProperties['java.awt.headless'] = 'true'
     t.maxParallelForks = Runtime.runtime.availableProcessors()
