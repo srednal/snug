@@ -7,7 +7,7 @@ object RWLock {
 }
 
 class RWLock {
-  val lock = new ReentrantReadWriteLock
+  private[snug] val lock = new ReentrantReadWriteLock
 
   def read[A](f: => A): A = {
     lock.readLock().lock()
