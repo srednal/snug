@@ -14,25 +14,26 @@ class WithResourceTest extends WordSpec with Matchers {
     "run and close with the closer" in {
       var ran = false
       var closed = false
-      WithResource.withCloser({closed = true}) {ran = true}
+      WithResource.withCloser(() => {closed = true}) {ran = true}
       ran shouldBe true
       closed shouldBe true
     }
 
     "close even if run pukes" in {
       var closed = false
-      an[Exception] should be thrownBy WithResource.withCloser({closed = true}) {throw new Exception}
+      def closeit() = closed = true
+      an[Exception] should be thrownBy WithResource.withCloser(closeit) {throw new Exception}
       closed shouldBe true
     }
 
     "handle closer exceptions quietly" in {
       var ran = false
-      WithResource.withCloser({throw new Exception}) {ran = true}
+      WithResource.withCloser(() => {throw new Exception}) {ran = true}
       ran shouldBe true
     }
 
     "return the thing" in {
-      WithResource.withCloser({}) { "thing" } shouldBe "thing"
+      WithResource.withCloser(() => ()) { "thing" } shouldBe "thing"
     }
 
     "close a Closeable" in {
