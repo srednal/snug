@@ -12,8 +12,8 @@ buildscript {
         maven { url "https://oss.sonatype.org/content/groups/public" }
     }
     dependencies {
-        classpath group: 'org.scoverage', name: 'gradle-scoverage', version: '1.0-5-g9c68988'
-        classpath group: 'org.github.ngbinh.scalastyle', name: 'gradle-scalastyle-plugin_2.11', version: '0.7.1'
+        classpath group: 'org.scoverage', name: 'gradle-scoverage', version: '1.0.8'
+        classpath group: 'org.github.ngbinh.scalastyle', name: 'gradle-scalastyle-plugin_2.11', version: '0.7.2'
     }
 }
 buildscript.repositories.each { project.repositories.add(it) }
@@ -56,6 +56,8 @@ dependencies {
 
     scoverage group: 'org.scoverage', name: 'scalac-scoverage-plugin_2.11', version: '1.1.0'
     scoverage group: 'org.scoverage', name: 'scalac-scoverage-runtime_2.11', version: '1.1.0'
+    // current scoverage version needs to also be in compile to build macros  (?)
+    testCompile group: 'org.scoverage', name: 'scalac-scoverage-runtime_2.11', version: '1.1.0'
 }
 
 tasks.withType(ScalaCompile) {
