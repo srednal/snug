@@ -3,6 +3,8 @@ package com.srednal.snug.config
 import java.net.{InetSocketAddress, InetAddress, URL, URI}
 
 import akka.util.Timeout
+import com.srednal.snug.ByteSize
+import com.srednal.snug.ByteSize._
 import com.typesafe.config.{ConfigFactory, Config}
 import com.typesafe.config.ConfigException.WrongType
 import org.scalatest._
@@ -55,6 +57,12 @@ class ConfigTest extends WordSpec with Matchers {
       config[Timeout]("foo.interval") shouldBe Timeout(5.seconds)
       config[Duration]("foo.number") shouldBe 42.millis
       config[Duration]("foo.pi") shouldBe 3.14.millis
+    }
+    "fetch a byte size" in {
+      config[ByteSize]("foo.number") shouldBe 42.B
+      config[ByteSize]("foo.size1") shouldBe 123.MB
+      config[ByteSize]("foo.size2") shouldBe 1024.KiB
+      config[ByteSize]("foo.size3") shouldBe 1.5.TB
     }
     "fetch a collection of strings" in {
       config[Seq[String]]("foo.names") shouldBe Seq("foo", "bar", "baz", "foo")

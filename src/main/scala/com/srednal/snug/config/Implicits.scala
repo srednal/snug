@@ -6,6 +6,7 @@ import scala.language.implicitConversions
 import scala.util.Try
 import java.net.{InetAddress, InetSocketAddress, URI, URL}
 import akka.util.Timeout
+import com.srednal.snug.ByteSize
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigException.WrongType
 
@@ -33,6 +34,8 @@ trait Implicits extends ContainerImplicits {
   implicit object BooleanConversion extends ConfigConversionAux[Boolean](_ getBoolean _)
 
   implicit object DurationConversion extends ConfigConversionAux[FiniteDuration](_.getDuration(_, NANOSECONDS).nanos)
+
+  implicit object ByteSizeConversion extends ConfigConversionAux[ByteSize](StringConversion.g |> ByteSize.apply)
 
   implicit object TimeoutConversion extends ConfigConversionAux[Timeout](DurationConversion.get)
 
