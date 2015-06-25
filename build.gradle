@@ -33,11 +33,11 @@ task('default', dependsOn: defaultTasks, description: "Run defaultTasks: ${defau
 
 
 dependencies {
-    compile group: 'org.scala-lang', name: 'scala-library', version: '2.11.6'
-    compile group: 'org.scala-lang', name: 'scala-reflect', version: '2.11.6'
-    compile group: 'org.scala-lang', name: 'scalap', version: '2.11.6'
+    compile group: 'org.scala-lang', name: 'scala-library', version: '2.11.7'
+    compile group: 'org.scala-lang', name: 'scala-reflect', version: '2.11.7'
+    compile group: 'org.scala-lang', name: 'scalap', version: '2.11.7'
 
-    compile group: 'com.typesafe.akka', name: 'akka-actor_2.11', version: '2.3.8'
+    compile group: 'com.typesafe.akka', name: 'akka-actor_2.11', version: '2.3.10'
     compile group: 'com.typesafe', name: 'config', version: '1.2.1'
 
     compile group: 'com.typesafe.scala-logging', name: 'scala-logging_2.11', version: '3.1.0'
