@@ -172,11 +172,11 @@ class ByteSizeTest extends WordSpec with Matchers {
     }
 
     "trim to byte boundary" in {
-      3.14.B.trim shouldBe 3.B
-      1.23456.KB.trim shouldBe 1.234.KB
-      0.000123123.MB.trim shouldBe 0.000123.MB
-      0.000123123.KiB.trim shouldBe 0.KiB
-      0.123123.KiB.trim shouldBe ((0.123123 * 1024).toLong.toDouble / 1024).KiB
+      3.14.B shouldBe 3.B
+      1.23456.KB shouldBe 1.234.KB
+      0.000123123.MB shouldBe 0.000123.MB
+      0.000123123.KiB shouldBe 0.KiB
+      0.123123.KiB shouldBe ((0.123123 * 1024).toLong.toDouble / 1024).KiB
     }
 
     "normalize" in {
@@ -187,11 +187,6 @@ class ByteSizeTest extends WordSpec with Matchers {
 
       1024.KiB.normalize shouldBe 1.MiB
       0.5.KiB.normalize shouldBe 512.B
-
-      // trim to byte boundary
-      3.14.B.normalize shouldBe 3.B
-      0.000123123.MB.normalize shouldBe 123.B
-
 
       // multiple orders of magnitude
       1020304.MB.normalize shouldBe 1.020304.TB
