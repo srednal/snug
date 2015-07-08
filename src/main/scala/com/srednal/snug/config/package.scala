@@ -52,5 +52,8 @@ package object config extends Implicits with LazyLogging {
           logger.error(msg, e)
           throw e
       }
+
+    def apply[T: ConfigConversion](key: ConfigKey[T]): T = apply[T](key.path)
   }
+
 }

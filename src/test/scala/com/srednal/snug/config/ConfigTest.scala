@@ -189,5 +189,31 @@ class ConfigTest extends WordSpec with Matchers {
         config[TestConfigHolder]("foo.hello")
       }
     }
+
+    "fetch via a ConfigKey[String]" in {
+      val helloKey = ConfigKey[String]("foo.hello")
+      val hello = config(helloKey)
+      hello shouldBe "World"
+    }
+
+    "fetch via a ConfigKey for a collection of strings" in {
+      val seqKey = ConfigKey[Seq[String]]("foo.names")
+      val setKey =   ConfigKey[Set[String]]("foo.names")
+      config(seqKey) shouldBe Seq("foo", "bar", "baz", "foo")
+      config(setKey) shouldBe Set("foo", "bar", "baz")
+    }
+
+    object TestConfigHolderKey extends ConfigKey[TestConfigHolder]("foo")
+
+    "fetch via a ConfigKey object" in {
+      config(TestConfigHolderKey) shouldBe
+        TestConfigHolder(
+          number = 42,
+          pi = 3.14,
+          interval = 5.seconds,
+          hello = "World",
+          yes = true,
+          names = "foo" :: "bar" :: "baz" :: "foo" :: Nil)
+    }
   }
 }
