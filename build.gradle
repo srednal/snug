@@ -12,7 +12,7 @@ buildscript {
         maven { url "https://oss.sonatype.org/content/groups/public" }
     }
     dependencies {
-        classpath group: 'org.scoverage', name: 'gradle-scoverage', version: '1.0.8'
+        classpath group: 'org.scoverage', name: 'gradle-scoverage', version: '1.0.9'
         classpath group: 'org.github.ngbinh.scalastyle', name: 'gradle-scalastyle-plugin_2.11', version: '0.7.2'
     }
 }
@@ -76,8 +76,7 @@ scalaStyle {
 }
 
 checkScoverage {
-    // actually, it's statement coverage now with scoverage but the property is still named line rate
-    minimumLineRate = 0.85
+    minimumRate = 0.85  // Statement coverage
 }
 
 ////////////////////////////////////////////////////////////////
@@ -126,17 +125,14 @@ def setupTest(Test t) {
 gradle.taskGraph.afterTask { Task task, TaskState state ->
     if (task == scalatest || task == testScoverage) {
         def dir = task.reports.html.destination.path - "$project.projectDir.path/"
-        out.println("Test report: open $dir/index.html")
-    }
-    if (task == testScoverage) {
-        // make the path relative
-        def dir = scoverage.reportDir.path - "$project.projectDir.path/"
-        println("Coverage report: open $dir/index.html")
+        out.println("HTML Test report: $dir/index.html")
     }
     if (task == checkScoverage) {
-        def xml = checkScoverage.parser.parse(checkScoverage.cobertura)
-        def coveragePct = new BigDecimal(xml.attribute('line-rate')).multiply(100).round(new MathContext(3))
-        println("Code coverage: $coveragePct%")
+        def scType = task.coverageType
+        def xml = task.parser.parse(new File(task.reportDir ?: scoverage.reportDir, scType.fileName))
+        def scRate = scType.normalize(xml.attribute(scType.paramName).toDouble())
+        def coveragePct = new BigDecimal(scRate * 100).round(new MathContext(3))
+        println("$scType coverage: $coveragePct%")
     }
 }
 
