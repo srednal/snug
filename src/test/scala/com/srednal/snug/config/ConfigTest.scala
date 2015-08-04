@@ -1,15 +1,14 @@
 package com.srednal.snug.config
 
-import java.net.{InetSocketAddress, InetAddress, URL, URI}
-
-import akka.util.Timeout
-import com.srednal.snug.ByteSize
-import com.srednal.snug.ByteSize._
-import com.typesafe.config.{ConfigFactory, Config}
-import com.typesafe.config.ConfigException.WrongType
-import org.scalatest._
 import scala.concurrent.duration._
-import scala.util.{Try, Success}
+import scala.util.{Success, Try}
+import java.net.{InetAddress, InetSocketAddress, URI, URL}
+import akka.util.Timeout
+import com.srednal.snug.ByteSize._
+import com.srednal.snug.{ByteSize, Path}
+import com.typesafe.config.ConfigException.WrongType
+import com.typesafe.config.{Config, ConfigFactory}
+import org.scalatest._
 
 // IMO being explicit (fewer constants) is good in tests, import scoping is intentional
 // scalastyle:off magic.number multiple.string.literals import.grouping
@@ -24,6 +23,8 @@ case class TestConfigHolder(number: Int,
 class ConfigTest extends WordSpec with Matchers {
 
   "Config" should {
+
+    // See src/test/resources/application.conf
 
     "fetch a string" in {
       config[String]("foo.hello") shouldBe "World"
@@ -148,6 +149,21 @@ class ConfigTest extends WordSpec with Matchers {
     "fetch URI and URL" in {
       ConfigFactory.parseString( """myUri: "http://example.com/foo" """)[URI]("myUri") shouldBe new URI("http://example.com/foo")
       ConfigFactory.parseString( """myUrl: "http://example.com/foo" """)[URL]("myUrl") shouldBe new URL("http://example.com/foo")
+    }
+
+    "fetch as Path" in {
+      val c = ConfigFactory.parseString(
+        """
+        a: "a"
+        babs: "/b"
+        abc: "/a/b/c"
+        abcrel: "a/b/c"
+        """)
+
+      c[Path]("a") shouldBe Path("a")
+      c[Path]("babs") shouldBe Path("/b")
+      c[Path]("abc") shouldBe Path("/a/b/c")
+      c[Path]("abcrel") shouldBe Path("a/b/c")
     }
 
     "fetch InetAddress" in {

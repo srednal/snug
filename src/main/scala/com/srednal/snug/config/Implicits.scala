@@ -6,7 +6,7 @@ import scala.language.implicitConversions
 import scala.util.Try
 import java.net.{InetAddress, InetSocketAddress, URI, URL}
 import akka.util.Timeout
-import com.srednal.snug.ByteSize
+import com.srednal.snug.{Path, ByteSize}
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigException.WrongType
 
@@ -55,7 +55,9 @@ trait Implicits extends ContainerImplicits {
     }
   )
 
-  implicit object SubPathConversion extends ConfigConversionAux[Config](_ getConfig _)
+  implicit object ConfigAtPathConversion extends ConfigConversionAux[Config](_ getConfig _)
+
+  implicit object PathConversion extends ConfigConversionAux[Path](StringConversion.g |> Path.apply)
 
 }
 
