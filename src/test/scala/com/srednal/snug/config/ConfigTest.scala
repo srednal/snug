@@ -173,28 +173,47 @@ class ConfigTest extends WordSpec with Matchers {
         local: localhost
         loop: "127.0.0.1"
         gdns: "8.8.8.8"
+        ipv6loop: "::1"
+        ipv6: "2001:4860:4860::8888"
         """)
 
       c[InetAddress]("srednal") shouldBe InetAddress.getByName("srednal.com")
       c[InetAddress]("local") shouldBe InetAddress.getByName("localhost")
       c[InetAddress]("loop") shouldBe InetAddress.getByName("127.0.0.1")
       c[InetAddress]("gdns") shouldBe InetAddress.getByName("8.8.8.8")
+      c[InetAddress]("ipv6loop") shouldBe InetAddress.getByName("::1")
+      c[InetAddress]("ipv6") shouldBe InetAddress.getByName("2001:4860:4860::8888")
     }
 
     "fetch InetSocketAddress from host:port" in {
       val c = ConfigFactory.parseString(
         """
-        hostPort: "srednal.com:80"
+        srednal: "srednal.com"
+        srednal80: "srednal.com:80"
+        local: localhost
+        local80: "localhost:80"
+        loop: "127.0.0.1"
+        loop80: "127.0.0.1:80"
         justPort: 8800
         colonPort: ":123"
-        noPort: "example.com:nowhere"
-        noColon: foobar
+        hostColon: "hostname:"
+        ipv6: "2001:4860:4860::8888:"  // requires trailing colon to interpret whole thing as host
+        ipv680: "2001:4860:4860::8888:80"
+        empty: ""
         """)
 
-      c[InetSocketAddress]("hostPort") shouldBe new InetSocketAddress("srednal.com", 80)
+      c[InetSocketAddress]("srednal") shouldBe new InetSocketAddress("srednal.com", 0)
+      c[InetSocketAddress]("srednal80") shouldBe new InetSocketAddress("srednal.com", 80)
+      c[InetSocketAddress]("local") shouldBe new InetSocketAddress("localhost", 0)
+      c[InetSocketAddress]("local80") shouldBe new InetSocketAddress("localhost", 80)
+      c[InetSocketAddress]("loop") shouldBe new InetSocketAddress("127.0.0.1", 0)
+      c[InetSocketAddress]("loop80") shouldBe new InetSocketAddress("127.0.0.1", 80)
       c[InetSocketAddress]("justPort") shouldBe new InetSocketAddress(8800)
-      a[WrongType] should be thrownBy c[InetSocketAddress]("noPort")
-      a[WrongType] should be thrownBy c[InetSocketAddress]("noColon")
+      c[InetSocketAddress]("colonPort") shouldBe new InetSocketAddress(123)
+      c[InetSocketAddress]("hostColon") shouldBe new InetSocketAddress("hostname", 0)
+      c[InetSocketAddress]("ipv6") shouldBe new InetSocketAddress("2001:4860:4860::8888", 0)
+      c[InetSocketAddress]("ipv680") shouldBe new InetSocketAddress("2001:4860:4860::8888", 80)
+      c[InetSocketAddress]("empty") shouldBe new InetSocketAddress(0)
     }
 
     "error in reasonable ways" in {

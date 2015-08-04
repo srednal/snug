@@ -45,13 +45,17 @@ trait Implicits extends ContainerImplicits {
 
   implicit object InetAddressConversion extends ConfigConversionAux[InetAddress](StringConversion.g |> InetAddress.getByName)
 
-  private val HostPortMatcher = """^(?:(.+):)?([0-9]+)$""".r
+  private val HostAndPortRE = """^(.*):(\d*)$""".r
+  private val PortOnlyRE = """^(\d+)$""".r
 
   implicit object InetSocketAddressConversion extends ConfigConversionAux[InetSocketAddress]((cfg, path) =>
     StringConversion.get(cfg, path) match {
-      case HostPortMatcher(host: String, port) => new InetSocketAddress(host, port.toInt)
-      case HostPortMatcher(_, port) => new InetSocketAddress(port.toInt)
-      case v => throw new WrongType(cfg.getValue(path).origin(), s"$path is '$v' rather than a <host:port> or <port>")
+      case HostAndPortRE("", port) => new InetSocketAddress(port.toInt)  // ":123"
+      case HostAndPortRE(host, "") => new InetSocketAddress(host, 0)  // "abc:"
+      case HostAndPortRE(host, port) => new InetSocketAddress(host, port.toInt)  // "abc:123"
+      case PortOnlyRE(port) => new InetSocketAddress(port.toInt)  // "123"
+      case "" => new InetSocketAddress(0)
+      case host => new InetSocketAddress(host, 0)
     }
   )
 
