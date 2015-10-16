@@ -10,7 +10,7 @@ class MutableOptionTest extends WordSpec with Matchers {
     "be empty" in {
       val mo = MutableOption[BigInt]()
 
-      a[NoSuchElementException] should be thrownBy mo.get
+//      a[NoSuchElementException] should be thrownBy mo.get
 
       mo.isEmpty shouldBe true
       mo.isDefined shouldBe false
@@ -28,7 +28,7 @@ class MutableOptionTest extends WordSpec with Matchers {
     "be nonEmpty" in {
       val mo = MutableOption[BigInt](13)
 
-      mo.get shouldBe 13
+//      mo.get shouldBe 13
 
       mo.isEmpty shouldBe false
       mo.isDefined shouldBe true
@@ -43,14 +43,14 @@ class MutableOptionTest extends WordSpec with Matchers {
     "initialize with a value" in {
       val mo = MutableOption(123)
       mo.isDefined shouldBe true
-      mo.get shouldBe 123
+      mo.getOrElse(999) shouldBe 123
     }
 
     "mutate" in {
       val mo = MutableOption(13)
-      mo.get shouldBe 13
+      mo.getOrElse(999) shouldBe 13
       mo set 42
-      mo.get shouldBe 42
+      mo.getOrElse(998) shouldBe 42
       mo.clear()
       mo shouldBe empty
     }
@@ -58,7 +58,7 @@ class MutableOptionTest extends WordSpec with Matchers {
     "getOrElseUpdate()" in {
       val mo = MutableOption[Int]()
       mo getOrElseUpdate 13 shouldBe 13
-      mo.get shouldBe 13
+      mo.getOrElse(999) shouldBe 13
       mo getOrElseUpdate 42 shouldBe 13
     }
 
@@ -69,7 +69,7 @@ class MutableOptionTest extends WordSpec with Matchers {
       didIt shouldBe empty
       mo set 123
       mo foreach didIt.set
-      didIt.get shouldBe 123
+      didIt.getOrElse(999) shouldBe 123
     }
 
     "exists()" in {

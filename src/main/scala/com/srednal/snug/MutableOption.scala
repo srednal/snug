@@ -8,18 +8,17 @@ object MutableOption {
   def apply[A](value: A) = new MutableOption[A](value)
 }
 
-final class MutableOption[A] private(initialValue: A) {
-  private def this() = this(null.asInstanceOf[A]) // scalastyle:ignore null
+final class MutableOption[A] private(initialValue: Option[A]) {
+  private def this() = this(None)
+  private def this(a: A) = this(Option(a))
 
-  private val ref = new AtomicReference[A](initialValue)
+  private val ref = new AtomicReference[Option[A]](initialValue)
 
-  def set(newValue: A): Unit = ref set newValue
+  def set(newValue: A): Unit = ref set Option(newValue)
 
-  def clear(): Unit = set(null.asInstanceOf[A]) // scalastyle:ignore null
+  def clear(): Unit = ref set None
 
-  def asOption = Option(ref.get)
-
-  def get: A = asOption getOrElse {throw new NoSuchElementException("MutableOption.None")}
+  def asOption: Option[A] = ref.get
 
   def isEmpty: Boolean = asOption.isEmpty
   def nonEmpty: Boolean = !isEmpty
@@ -40,5 +39,4 @@ final class MutableOption[A] private(initialValue: A) {
     set(v)
     v
   }
-
 }
