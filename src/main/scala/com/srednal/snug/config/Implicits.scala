@@ -1,14 +1,13 @@
 package com.srednal.snug.config
 
+import com.srednal.snug.{ByteSize, Path}
 import scala.collection.JavaConverters._
 import scala.concurrent.duration._
 import scala.language.implicitConversions
 import scala.util.Try
-import java.net.{InetAddress, InetSocketAddress, URI, URL}
 import akka.util.Timeout
-import com.srednal.snug.{Path, ByteSize}
-import com.typesafe.config.Config
-import com.typesafe.config.ConfigException.WrongType
+import com.typesafe.config.{Config, ConfigValue}
+import java.net.{InetAddress, InetSocketAddress, URI, URL}
 
 trait Implicits extends ContainerImplicits {
 
@@ -50,10 +49,10 @@ trait Implicits extends ContainerImplicits {
 
   implicit object InetSocketAddressConversion extends ConfigConversionAux[InetSocketAddress]((cfg, path) =>
     StringConversion.get(cfg, path) match {
-      case HostAndPortRE("", port) => new InetSocketAddress(port.toInt)  // ":123"
-      case HostAndPortRE(host, "") => new InetSocketAddress(host, 0)  // "abc:"
-      case HostAndPortRE(host, port) => new InetSocketAddress(host, port.toInt)  // "abc:123"
-      case PortOnlyRE(port) => new InetSocketAddress(port.toInt)  // "123"
+      case HostAndPortRE("", port) => new InetSocketAddress(port.toInt) // ":123"
+      case HostAndPortRE(host, "") => new InetSocketAddress(host, 0) // "abc:"
+      case HostAndPortRE(host, port) => new InetSocketAddress(host, port.toInt) // "abc:123"
+      case PortOnlyRE(port) => new InetSocketAddress(port.toInt) // "123"
       case "" => new InetSocketAddress(0)
       case host => new InetSocketAddress(host, 0)
     }
@@ -79,12 +78,37 @@ trait ContainerImplicits extends LowerPriorityContainerImplicits {
 
   implicit def configConvertForTry[X: ConfigConversion]: ConfigConversion[Try[X]] = new TryConversion[X]
 
+  private def extractVal[X: ConfigConversion](c: ConfigValue) = c.atKey("X")[X]("X")
+
   private class ListConversion[+X: ConfigConversion] extends ConfigConversion[List[X]] {
     override def get(cfg: Config, path: String) =
-      cfg.getList(path).asScala.toList map (_.atKey("X")[X]("X"))
+      cfg.getList(path).asScala.toList map extractVal[X]
   }
 
   implicit def configConvertForList[X: ConfigConversion]: ConfigConversion[List[X]] = new ListConversion[X]
+
+  // scalastyle spaces after plus seems to not grok multple covariant type params
+  // scalastyle:ignore spaces.after.plus
+  private class Tuple2Conversion[+A: ConfigConversion, +B: ConfigConversion] extends ConfigConversion[(A, B)] {
+    override def get(cfg: Config, path: String) = cfg.getList(path).asScala.toList match {
+      case a :: b :: Nil => (extractVal[A](a), extractVal[B](b))
+      case _ => sys.error(s"Error parsing config at $path from ${cfg.getValue(path).origin().description()}")
+    }
+  }
+
+  implicit def configConvertForTuple2[A: ConfigConversion, B: ConfigConversion]: ConfigConversion[(A, B)] =
+    new Tuple2Conversion[A, B]
+
+  // scalastyle:ignore spaces.after.plus
+  private class Tuple3Conversion[+A: ConfigConversion, +B: ConfigConversion, +C: ConfigConversion] extends ConfigConversion[(A, B, C)] {
+    override def get(cfg: Config, path: String) = cfg.getList(path).asScala.toList match {
+      case a :: b :: c :: Nil => (extractVal(a), extractVal(b), extractVal(c))
+      case _ => sys.error(s"Error parsing config at $path from ${cfg.getValue(path).origin().description()}")
+    }
+  }
+
+  implicit def configConvertForTuple3[A: ConfigConversion, B: ConfigConversion, C: ConfigConversion]: ConfigConversion[(A, B, C)] =
+    new Tuple3Conversion[A, B, C]
 }
 
 trait LowerPriorityContainerImplicits {

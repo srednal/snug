@@ -143,7 +143,7 @@ class ConfigTest extends WordSpec with Matchers {
     "fetch as Try" in {
       config[Try[String]]("foo.hello") shouldBe Success("World")
       config[Try[Double]]("foo.pi") shouldBe Success(3.14)
-      config[Try[Int]]("foo.hello") should have('failure(true))
+      config[Try[Int]]("foo.hello") should have('failure (true))
     }
 
     "fetch URI and URL" in {
@@ -233,7 +233,7 @@ class ConfigTest extends WordSpec with Matchers {
 
     "fetch via a ConfigKey for a collection of strings" in {
       val seqKey = ConfigKey[Seq[String]]("foo.names")
-      val setKey =   ConfigKey[Set[String]]("foo.names")
+      val setKey = ConfigKey[Set[String]]("foo.names")
       config(seqKey) shouldBe Seq("foo", "bar", "baz", "foo")
       config(setKey) shouldBe Set("foo", "bar", "baz")
     }
@@ -249,6 +249,13 @@ class ConfigTest extends WordSpec with Matchers {
           hello = "World",
           yes = true,
           names = "foo" :: "bar" :: "baz" :: "foo" :: Nil)
+    }
+
+    "fetch a Tuple" in {
+
+      config[(String, Double)]("foo.tuple2").shouldBe(("foo", 3.14))
+      config[(String, Int, Duration)]("foo.tuple3").shouldBe(("foo", 42, 5.seconds))
+
     }
   }
 }
