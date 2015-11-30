@@ -4,12 +4,14 @@ import scala.util.Try
 import org.scalatest._
 import java.util.concurrent.Callable
 
+
+// scalastyle:off import.grouping var.field
 class JavaConvertersTest extends WordSpec with Matchers {
 
   "FunctionAsRunnable" should {
     import com.srednal.snug.JavaConverters.FunctionAsRunnable
 
-    "implicitly convert a func and run it" in {
+    "implicitly convert a func to runnable and run it" in {
       var didit = false
       val r: Runnable = () => {didit = true}
       r shouldBe a[Runnable]
@@ -21,7 +23,7 @@ class JavaConvertersTest extends WordSpec with Matchers {
   "FunctionAsCallable" should {
     import com.srednal.snug.JavaConverters.FunctionAsCallable
 
-    "implicitly convert a func and run it" in {
+    "implicitly convert a func to callable and run it" in {
       val r: Callable[String] = () => "done"
       r shouldBe a[Callable[_]]
       r.call() shouldBe "done"
@@ -34,11 +36,11 @@ class JavaConvertersTest extends WordSpec with Matchers {
     }
 
   }
-  
+
   "TryFunctionAsCallable" should {
     import com.srednal.snug.JavaConverters.TryFunctionAsCallable
 
-    "implicitly convert a func and run it" in {
+    "implicitly convert a func returning try to callable and run it" in {
       val r: Callable[String] = () => Try("yep")
       r shouldBe a[Callable[_]]
       r.call() shouldBe "yep"
