@@ -30,6 +30,6 @@ object ConfigConversion {
 
 /** Move the get method into constructor args */
 abstract class ConfigConversionAux[T](val g: (Config, String) => T) extends ConfigConversion[T] {
-  override def get(cfg: Config, path: String) = g(cfg,path)
+  override def get(cfg: Config, path: String): T = g(cfg,path)
 }
 

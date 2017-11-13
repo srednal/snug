@@ -45,11 +45,11 @@ package object config extends Implicits with LazyLogging {
     def apply[T: ConfigConversion](path: String): T =
       try ConfigConversion[T].get(cfg, path)
       catch {
+        case NonFatal(e) if cfg hasPath path =>
+          logger.error(s"Error parsing config at $path from ${ cfg.getValue(path).origin().description() }", e)
+          throw e
         case NonFatal(e) =>
-          val msg =
-            if (cfg hasPath path) s"Error parsing config at $path from ${cfg.getValue(path).origin().description()}"
-            else s"Config not defined at $path"
-          logger.error(msg, e)
+          logger.error(s"Config not defined at $path", e)
           throw e
       }
 

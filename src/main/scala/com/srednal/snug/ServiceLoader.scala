@@ -1,10 +1,11 @@
 package com.srednal.snug
 
 import com.srednal.snug.TryIterable._
-import java.util.{ServiceLoader => JServiceLoader}
+import java.util.{ ServiceLoader => JServiceLoader }
 import scala.collection.JavaConverters._
 import scala.reflect._
 import scala.util.Failure
+import scala.util.control.NonFatal
 import com.typesafe.scalalogging.LazyLogging
 
 /**
@@ -22,16 +23,17 @@ object ServicesLoader extends LazyLogging {
    * Each call to this method will instantiate a new set of service instances.
    */
   def apply[S](implicit ct: ClassTag[S]): Iterable[S] =
-    services[S].toTryStream.map(_.recoverWith {
-      case e: Throwable =>
+    services[S].toTryStream.flatMap(_.recoverWith {
+      case NonFatal(e) =>
         logger.error(s"Error loading service for $ct", e)
         Failure(e)
-    }.toOption).flatten
+    }.toOption
+    )
 
   def services[S](implicit ct: ClassTag[S]): Iterable[S] =
     JServiceLoader.load(ct.runtimeClass.asInstanceOf[Class[S]], classLoader).asScala
 
-  def classLoader = Thread.currentThread().getContextClassLoader match {
+  def classLoader: ClassLoader = Thread.currentThread().getContextClassLoader match {
     case cl: ClassLoader => cl
     case _ => getClass.getClassLoader
   }

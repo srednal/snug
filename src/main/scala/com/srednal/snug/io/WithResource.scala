@@ -11,10 +11,10 @@ object WithResource {
 
   def withResource[R <: Closeable, T](r: R)(f: R => T): T = withCloser[T](r.close)(f(r))
 
-  def withCloser[T](closer: () => Unit)(f: => T): T =
+  def withCloser[T](closer:  => Unit)(f: => T): T =
     try f
     finally
-      try closer()
+      try closer
       catch {
         case NonFatal(_) =>
       }

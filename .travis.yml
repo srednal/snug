@@ -1,8 +1,6 @@
-language: java
+language: scala
 
 jdk: oraclejdk8
 
 script:
-    - ./gradlew check
-    - ./gradlew checkScoverage
-    - ./gradlew scalaStyle
+  - sbt clean compile coverage test coverageReport scalastyle

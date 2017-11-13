@@ -12,7 +12,7 @@ sealed trait Path {
 
   def parent: Path
   def name: String
-  def isRoot = false
+  def isRoot: Boolean = false
 
   def isAbsolute: Boolean = parent.isAbsolute
 
@@ -54,7 +54,7 @@ object Path {
     override val asAbsolute = %
     override val asRelative = ^
     override val isRoot = true
-    override def parent = throw new NoSuchElementException(s"parent of root path ($name)")
+    override def parent: Path = throw new NoSuchElementException(s"parent of root path ($name)")
     override val elements = Nil
     override lazy val toString = name
   }
@@ -82,8 +82,8 @@ object Path {
    */
   implicit class PathPimpedString(pathStr: String) {
     val asPath: Path = Path(pathStr)
-    def /(p: String) = asPath / p
-    def /(p: Path) = asPath / p
+    def /(p: String): Path = asPath / p
+    def /(p: Path): Path = asPath / p
   }
 
   /** Enable {{{Path("foo/bar")}}} */

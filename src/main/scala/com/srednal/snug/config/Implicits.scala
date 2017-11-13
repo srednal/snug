@@ -1,42 +1,34 @@
 package com.srednal.snug.config
 
-import com.srednal.snug.{ByteSize, Path}
+import com.srednal.snug.Path
 import scala.collection.JavaConverters._
 import scala.concurrent.duration._
-import scala.language.implicitConversions
+import java.time.{Duration => JDuration}
 import scala.util.Try
-import akka.util.Timeout
-import com.typesafe.config.{Config, ConfigValue}
-import java.net.{InetAddress, InetSocketAddress, URI, URL}
+import com.typesafe.config.{ ConfigValue, Config }
+import java.net.{ InetSocketAddress, URL, URI, InetAddress }
 
 trait Implicits extends ContainerImplicits {
 
   private implicit class Chain[A, B](a: (Config, String) => A) {
-    // scalastyle:ignore method.name
-    def |>(b: A => B) = (cfg: Config, path: String) => b(a(cfg, path))
+    def |>(b: A => B): (Config, String) => B = (cfg: Config, path: String) => b(a(cfg, path)) // scalastyle:ignore method.name
   }
 
-  implicit object StringConversion extends ConfigConversionAux[String](_.getValue(_).unwrapped().toString)
+  implicit object StringConversion extends ConfigConversionAux[String](_ getString _)
 
-  implicit object BigIntConversion extends ConfigConversionAux[BigInt](StringConversion.g |> BigInt.apply)
+  implicit object LongConversion extends ConfigConversionAux[Long](_ getLong _)
 
-  implicit object LongConversion extends ConfigConversionAux[Long](BigIntConversion.g |> (_.longValue()))
+  implicit object IntConversion extends ConfigConversionAux[Int](_ getInt _)
 
-  implicit object IntConversion extends ConfigConversionAux[Int](BigIntConversion.g |> (_.intValue()))
+  implicit object DoubleConversion extends ConfigConversionAux[Double](_ getDouble _)
 
-  implicit object BigDecimalConversion extends ConfigConversionAux[BigDecimal](StringConversion.g |> BigDecimal.apply)
-
-  implicit object DoubleConversion extends ConfigConversionAux[Double](BigDecimalConversion.g |> (_.doubleValue()))
-
-  implicit object FloatConversion extends ConfigConversionAux[Float](BigDecimalConversion.g |> (_.floatValue()))
+  implicit object FloatConversion extends ConfigConversionAux[Float](DoubleConversion.g |> (_.floatValue))
 
   implicit object BooleanConversion extends ConfigConversionAux[Boolean](_ getBoolean _)
 
-  implicit object DurationConversion extends ConfigConversionAux[FiniteDuration](_.getDuration(_, NANOSECONDS).nanos)
+  implicit object JavaDurationConversion extends ConfigConversionAux[JDuration](_ getDuration _)
 
-  implicit object ByteSizeConversion extends ConfigConversionAux[ByteSize](StringConversion.g |> ByteSize.apply)
-
-  implicit object TimeoutConversion extends ConfigConversionAux[Timeout](DurationConversion.get)
+  implicit object ScalaDurationConversion extends ConfigConversionAux[FiniteDuration](JavaDurationConversion.g |> (_.toNanos) |> Duration.fromNanos)
 
   implicit object URIConversion extends ConfigConversionAux[URI](StringConversion.g |> (new URI(_)))
 
@@ -67,13 +59,13 @@ trait Implicits extends ContainerImplicits {
 trait ContainerImplicits extends LowerPriorityContainerImplicits {
 
   private class OptionConversion[+X: ConfigConversion] extends ConfigConversion[Option[X]] {
-    override def get(cfg: Config, path: String) = if (cfg.hasPath(path)) Some(cfg(path)) else None
+    override def get(cfg: Config, path: String): Option[X] = if (cfg.hasPath(path)) Some(cfg(path)) else None
   }
 
   implicit def configConvertForOption[X: ConfigConversion]: ConfigConversion[Option[X]] = new OptionConversion[X]
 
   private class TryConversion[+X: ConfigConversion] extends ConfigConversion[Try[X]] {
-    override def get(cfg: Config, path: String) = Try(cfg(path))
+    override def get(cfg: Config, path: String): Try[X] = Try(cfg(path))
   }
 
   implicit def configConvertForTry[X: ConfigConversion]: ConfigConversion[Try[X]] = new TryConversion[X]
@@ -81,7 +73,7 @@ trait ContainerImplicits extends LowerPriorityContainerImplicits {
   private def extractVal[X: ConfigConversion](c: ConfigValue) = c.atKey("X")[X]("X")
 
   private class ListConversion[+X: ConfigConversion] extends ConfigConversion[List[X]] {
-    override def get(cfg: Config, path: String) =
+    override def get(cfg: Config, path: String): List[X] =
       cfg.getList(path).asScala.toList map extractVal[X]
   }
 
@@ -90,7 +82,7 @@ trait ContainerImplicits extends LowerPriorityContainerImplicits {
   // scalastyle spaces after plus seems to not grok multple covariant type params
   // scalastyle:ignore spaces.after.plus
   private class Tuple2Conversion[+A: ConfigConversion, +B: ConfigConversion] extends ConfigConversion[(A, B)] {
-    override def get(cfg: Config, path: String) = cfg.getList(path).asScala.toList match {
+    override def get(cfg: Config, path: String): (A, B) = cfg.getList(path).asScala.toList match {
       case a :: b :: Nil => (extractVal[A](a), extractVal[B](b))
       case _ => sys.error(s"Error parsing config at $path from ${cfg.getValue(path).origin().description()}")
     }
@@ -101,7 +93,7 @@ trait ContainerImplicits extends LowerPriorityContainerImplicits {
 
   // scalastyle:ignore spaces.after.plus
   private class Tuple3Conversion[+A: ConfigConversion, +B: ConfigConversion, +C: ConfigConversion] extends ConfigConversion[(A, B, C)] {
-    override def get(cfg: Config, path: String) = cfg.getList(path).asScala.toList match {
+    override def get(cfg: Config, path: String): (A, B, C) = cfg.getList(path).asScala.toList match {
       case a :: b :: c :: Nil => (extractVal(a), extractVal(b), extractVal(c))
       case _ => sys.error(s"Error parsing config at $path from ${cfg.getValue(path).origin().description()}")
     }
@@ -116,7 +108,7 @@ trait LowerPriorityContainerImplicits {
   // allow implicit for ConfigConversion[Traversable | Iterable | Seq] to use configConvertForList above (unambiguously)
   // ConfigConversion[Set] will drop in here
   private class SetConversion[X: ConfigConversion] extends ConfigConversion[Set[X]] {
-    override def get(cfg: Config, path: String) = configConvertForList[X].get(cfg, path).toSet
+    override def get(cfg: Config, path: String): Set[X] = configConvertForList[X].get(cfg, path).toSet
   }
 
   implicit def configConvertForSet[X: ConfigConversion]: ConfigConversion[Set[X]] = new SetConversion[X]

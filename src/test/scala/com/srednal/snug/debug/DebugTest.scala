@@ -1,7 +1,6 @@
 package com.srednal.snug.debug
 
 import scala.collection.mutable.ListBuffer
-import com.typesafe.scalalogging.{StrictLogging, LazyLogging}
 import org.scalatest._
 
 // scalastyle:off magic.number multiple.string.literals import.grouping var.field
@@ -17,10 +16,15 @@ object DebugTest {
 
 }
 
-class DebugTest extends WordSpec with Matchers with DebugLog {
+class DebugTest extends WordSpec with Matchers with DebugLog with BeforeAndAfterEach {
   import DebugTest._
 
   override val logger = new X
+  override def beforeEach(): Unit = {
+    logger.debugged.clear()
+    logger.traced.clear()
+    super.beforeEach()
+  }
 
   val x = "the value"
   def z = 3.14
@@ -29,112 +33,106 @@ class DebugTest extends WordSpec with Matchers with DebugLog {
   "the debug macro" should {
 
     "debug a single constant" in {
-      logger.debugged.clear()
       debuglog("foo")
-      logger.debugged shouldBe "foo" :: Nil
+      logger.debugged should contain only "foo"
     }
 
     "debug a single non-string constant" in {
-      logger.debugged.clear()
       debuglog(123)
-      logger.debugged shouldBe "123" :: Nil
+      logger.debugged should contain only "123"
     }
 
     "debug a local val" in {
-      logger.debugged.clear()
       val foo = "xyzzy"
       debuglog(foo)
-      logger.debugged shouldBe "foo = xyzzy" :: Nil
+      logger.debugged should contain only "foo = xyzzy"
     }
     "debug a local var" in {
-      logger.debugged.clear()
-      var foo = "xyzzy"
+      var foo: String = ""
+      foo = "xyzzy"
       debuglog(foo)
-      logger.debugged shouldBe "foo = xyzzy" :: Nil
+      logger.debugged should contain only "foo = xyzzy"
     }
 
     "debug a field" in {
-      logger.debugged.clear()
       debuglog(x)
-      logger.debugged shouldBe "DebugTest.this.x = the value" :: Nil
+      logger.debugged should contain only "DebugTest.this.x = the value"
     }
 
-    "debug a method" in {
-      logger.debugged.clear()
+    "debug a noarg method" in {
       debuglog(z)
-      debuglog(zz("foo"))
-      logger.debugged shouldBe "DebugTest.this.z = 3.14" :: """DebugTest.this.zz("foo") = oof""" :: Nil
+      logger.debugged should contain only "DebugTest.this.z = 3.14"
     }
-    "debug a function" in {
-      logger.debugged.clear()
+    "debug a method" in {
+      debuglog(zz("foo"))
+      logger.debugged should contain only """DebugTest.this.zz("foo") = oof"""
+    }
+
+    "debug a function defn reference" in {
       val f: String => Int = _.toInt
       debuglog(f)
+      logger.debugged.head should startWith
+      "f = "
+    }
+    "debug a function invocation" in {
+      val f: String => Int = _.toInt
       debuglog(f("13"))
-      logger.debugged shouldBe "f = <function1>" :: """f.apply("13") = 13""" :: Nil
+      logger.debugged should contain only """f.apply("13") = 13"""
     }
     "debug a companion object field" in {
-      logger.debugged.clear()
       debuglog(w)
-      logger.debugged shouldBe "DebugTest.w = 42" :: Nil
+      logger.debugged should contain only "DebugTest.w = 42"
     }
     "debug several args as multiple logger calls" in {
-      logger.debugged.clear()
       debuglog(w, x, z)
-      logger.debugged shouldBe "DebugTest.w = 42" :: "DebugTest.this.x = the value" :: "DebugTest.this.z = 3.14" :: Nil
+      logger.debugged should contain inOrder(
+        "DebugTest.w = 42",
+        "DebugTest.this.x = the value",
+        "DebugTest.this.z = 3.14"
+      )
     }
   }
 
   "the trace macro" should {
 
     "trace a single constant" in {
-      logger.traced.clear()
       tracelog("foo")
-      logger.traced shouldBe "foo" :: Nil
+      logger.traced should contain only "foo"
     }
 
     "trace a local val" in {
-      logger.traced.clear()
       val foo = "xyzzy"
       tracelog(foo)
-      logger.traced shouldBe "foo = xyzzy" :: Nil
+      logger.traced should contain only "foo = xyzzy"
     }
     "trace a local var" in {
       logger.traced.clear()
-      var foo = "xyzzy"
+      var foo: String = ""
+      foo = "xyzzy"
       tracelog(foo)
-      logger.traced shouldBe "foo = xyzzy" :: Nil
+      logger.traced should contain only "foo = xyzzy"
     }
 
     "trace a field" in {
-      logger.traced.clear()
       tracelog(x)
-      logger.traced shouldBe "DebugTest.this.x = the value" :: Nil
+      logger.traced should contain only "DebugTest.this.x = the value"
     }
 
     "trace a method" in {
-      logger.traced.clear()
       tracelog(z)
-      logger.traced shouldBe "DebugTest.this.z = 3.14" :: Nil
+      logger.traced should contain only "DebugTest.this.z = 3.14"
     }
     "trace a companion object field" in {
-      logger.traced.clear()
       tracelog(w)
-      logger.traced shouldBe "DebugTest.w = 42" :: Nil
+      logger.traced should contain only "DebugTest.w = 42"
     }
     "trace several args as multiple logger calls" in {
-      logger.traced.clear()
       tracelog(w, x, z)
-      logger.traced shouldBe "DebugTest.w = 42" :: "DebugTest.this.x = the value" :: "DebugTest.this.z = 3.14" :: Nil
-    }
-  }
-
-
-  "Debug" should {
-    "mixin with LazyLogging" in {
-      class Test extends LazyLogging with DebugLog
-    }
-    "mixin with StructLogging" in {
-      class Test extends StrictLogging with DebugLog
+      logger.traced should contain inOrder(
+        "DebugTest.w = 42",
+        "DebugTest.this.x = the value",
+        "DebugTest.this.z = 3.14"
+      )
     }
   }
 }

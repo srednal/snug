@@ -3,7 +3,7 @@ package com.srednal.snug
 import java.util.concurrent.locks.ReentrantReadWriteLock
 
 object RWLock {
-  def apply() = new RWLock
+  def apply(): RWLock = new RWLock
 }
 
 class RWLock {

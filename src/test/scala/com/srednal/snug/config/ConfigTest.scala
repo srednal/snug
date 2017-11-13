@@ -1,11 +1,10 @@
 package com.srednal.snug.config
 
 import scala.concurrent.duration._
+import java.time.{Duration => JDuration}
 import scala.util.{Success, Try}
 import java.net.{InetAddress, InetSocketAddress, URI, URL}
-import akka.util.Timeout
-import com.srednal.snug.ByteSize._
-import com.srednal.snug.{ByteSize, Path}
+import com.srednal.snug.Path
 import com.typesafe.config.ConfigException.WrongType
 import com.typesafe.config.{Config, ConfigFactory}
 import org.scalatest._
@@ -35,9 +34,6 @@ class ConfigTest extends WordSpec with Matchers {
     "fetch a long" in {
       config[Long]("foo.number") shouldBe 42L
     }
-    "fetch a BigInt" in {
-      config[BigInt]("foo.number") shouldBe BigInt(42)
-    }
     "fetch a double" in {
       config[Double]("foo.pi") shouldBe 3.14
       config[Double]("foo.number") shouldBe 42.0
@@ -46,24 +42,15 @@ class ConfigTest extends WordSpec with Matchers {
       config[Float]("foo.pi") shouldBe 3.14f
       config[Float]("foo.number") shouldBe 42.0f
     }
-    "fetch a BigDecimal" in {
-      config[BigDecimal]("foo.pi") shouldBe BigDecimal("3.14")
-    }
     "fetch a boolean" in {
       config[Boolean]("foo.yes") shouldBe true
     }
     "fetch a duration" in {
+      config[JDuration]("foo.interval") shouldBe JDuration.ofSeconds(5)
       config[Duration]("foo.interval") shouldBe 5.seconds
       config[FiniteDuration]("foo.interval") shouldBe 5.seconds
-      config[Timeout]("foo.interval") shouldBe Timeout(5.seconds)
       config[Duration]("foo.number") shouldBe 42.millis
       config[Duration]("foo.pi") shouldBe 3.14.millis
-    }
-    "fetch a byte size" in {
-      config[ByteSize]("foo.number") shouldBe 42.B
-      config[ByteSize]("foo.size1") shouldBe 123.MB
-      config[ByteSize]("foo.size2") shouldBe 1024.KiB
-      config[ByteSize]("foo.size3") shouldBe 1.5.TB
     }
     "fetch a collection of strings" in {
       config[Seq[String]]("foo.names") shouldBe Seq("foo", "bar", "baz", "foo")
@@ -79,22 +66,6 @@ class ConfigTest extends WordSpec with Matchers {
       val sc: Config = config[Config]("foo")
       sc[String]("hello") shouldBe "World"
     }
-
-    "fetch anything as a string" in {
-      config[String]("foo.hello") shouldBe "World"
-      config[String]("foo.number") shouldBe "42"
-      config[String]("foo.pi") shouldBe "3.14"
-      config[String]("foo.yes") shouldBe "true"
-      config[String]("foo.interval") shouldBe "5 seconds"
-      val f: String = config("foo")
-      f should {
-        startWith("{") and
-          endWith("}") and
-          include("hello=World") and
-          include("yes=true")
-      }
-    }
-
 
     implicit object TestConfigHolderCvt extends ConfigConversion[TestConfigHolder] {
       def get(cfg: Config, path: String) = {
@@ -217,7 +188,7 @@ class ConfigTest extends WordSpec with Matchers {
     }
 
     "error in reasonable ways" in {
-      a[NumberFormatException] should be thrownBy {
+      a[WrongType] should be thrownBy {
         config[Int]("foo.hello")
       }
       a[WrongType] should be thrownBy {

@@ -2,7 +2,7 @@ package com.srednal.snug.debug
 
 import scala.language.experimental.macros
 import scala.reflect.macros.blackbox
-import com.typesafe.scalalogging.Logger
+//import com.typesafe.scalalogging.Logger
 
 /** Intended to be mixed-in with, for example, LazyLogging or StrictLogging,
   * however the only restriction is that logger.debug(String) can be called somehow.
@@ -11,8 +11,7 @@ trait DebugLog {
 
   // use a structural type here (rather than typesafe.logging.Logger) because
   // Logger is final and this makes testing more accessible
-  // scalastyle:ignore structural.type
-  protected def logger: {
+  protected def logger: { // scalastyle:ignore structural.type
     def debug(message: String): Unit
     def trace(message: String): Unit
   }
@@ -31,15 +30,15 @@ class DebugMacroBundle(val c: blackbox.Context) {
   import c.universe._
 
   // call logger.debug once for each param
-  def debug(params: c.Expr[Any]*) =
+  def debug(params: c.Expr[Any]*): Block =
     Block(params.toList map paramDebugString map { s => q"${c.prefix}.logger.debug($s)" }, Literal(Constant(())))
-  def trace(params: c.Expr[Any]*) =
+  def trace(params: c.Expr[Any]*): Block =
     Block(params.toList map paramDebugString map { s => q"${c.prefix}.logger.trace($s)" }, Literal(Constant(())))
 
 
   // a constant literal results in simply the value
   // otherwise fetch the param name and use that in the log as "name = value"
-  def paramDebugString(param: c.Expr[Any]) = param.tree match {
+  def paramDebugString(param: c.Expr[Any]): Tree = param.tree match {
     case c.universe.Literal(c.universe.Constant(_)) => q"$param.toString"
     case t =>
       val name = c.Expr[String](Literal(Constant(show(t))))

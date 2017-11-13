@@ -17,6 +17,6 @@ object TryIterable {
 class TryIterable[A](underlying: Iterable[A]) extends Iterable[Try[A]] {
   private def asStream(ui: Iterator[A]): Stream[Try[A]] = if (ui.hasNext) Try( ui.next()) #:: asStream(ui) else Stream.empty
   lazy val tryStream: Stream[Try[A]] = asStream(underlying.iterator)
-  override def iterator = tryStream.iterator
+  override def iterator: Iterator[Try[A]] = tryStream.iterator
 }
 
