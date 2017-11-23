@@ -1,29 +1,28 @@
 package com.srednal.snug.debug
 
-import scala.collection.mutable.ListBuffer
+import com.typesafe.scalalogging.Logger
+import org.mockito.ArgumentCaptor
+import org.mockito.Mockito._
 import org.scalatest._
-
-// scalastyle:off magic.number multiple.string.literals import.grouping var.field
+import org.scalatest.mockito._
 object DebugTest {
   val w = 42
 
-  class X {
-    val debugged = ListBuffer[String]()
-    val traced = ListBuffer[String]()
-    def debug(s: String): Unit = debugged += s
-    def trace(s: String): Unit = traced += s
-  }
-
+  def captor[X: Manifest]: ArgumentCaptor[X] = ArgumentCaptor.forClass[X, X](manifest[X].runtimeClass.asInstanceOf[Class[X]])
 }
 
-class DebugTest extends WordSpec with Matchers with DebugLog with BeforeAndAfterEach {
+class DebugTest extends WordSpec with MockitoSugar with Matchers with DebugLog with BeforeAndAfterEach {
   import DebugTest._
 
-  override val logger = new X
+  val underlying = mock[org.slf4j.Logger]
+  override val logger = Logger(underlying)
+
   override def beforeEach(): Unit = {
-    logger.debugged.clear()
-    logger.traced.clear()
     super.beforeEach()
+    reset(underlying)
+    when(underlying.isDebugEnabled).thenReturn(true)
+    when(underlying.isTraceEnabled).thenReturn(true)
+    ()
   }
 
   val x = "the value"
@@ -34,62 +33,61 @@ class DebugTest extends WordSpec with Matchers with DebugLog with BeforeAndAfter
 
     "debug a single constant" in {
       debuglog("foo")
-      logger.debugged should contain only "foo"
+      verify(underlying).debug("foo")
     }
 
     "debug a single non-string constant" in {
       debuglog(123)
-      logger.debugged should contain only "123"
+      verify(underlying).debug("123")
     }
 
     "debug a local val" in {
       val foo = "xyzzy"
       debuglog(foo)
-      logger.debugged should contain only "foo = xyzzy"
+      verify(underlying).debug("foo = xyzzy")
     }
     "debug a local var" in {
       var foo: String = ""
       foo = "xyzzy"
       debuglog(foo)
-      logger.debugged should contain only "foo = xyzzy"
+      verify(underlying).debug("foo = xyzzy")
     }
 
     "debug a field" in {
       debuglog(x)
-      logger.debugged should contain only "DebugTest.this.x = the value"
+      verify(underlying).debug("DebugTest.this.x = the value")
     }
 
     "debug a noarg method" in {
       debuglog(z)
-      logger.debugged should contain only "DebugTest.this.z = 3.14"
+      verify(underlying).debug("DebugTest.this.z = 3.14")
     }
     "debug a method" in {
       debuglog(zz("foo"))
-      logger.debugged should contain only """DebugTest.this.zz("foo") = oof"""
+      verify(underlying).debug( """DebugTest.this.zz("foo") = oof""")
     }
 
     "debug a function defn reference" in {
       val f: String => Int = _.toInt
       debuglog(f)
-      logger.debugged.head should startWith
-      "f = "
+      val c = captor[String]
+      verify(underlying).debug(c.capture)
+      c.getValue should startWith("f = ")
     }
     "debug a function invocation" in {
       val f: String => Int = _.toInt
       debuglog(f("13"))
-      logger.debugged should contain only """f.apply("13") = 13"""
+      verify(underlying).debug( """f.apply("13") = 13""")
     }
     "debug a companion object field" in {
       debuglog(w)
-      logger.debugged should contain only "DebugTest.w = 42"
+      verify(underlying).debug("DebugTest.w = 42")
     }
     "debug several args as multiple logger calls" in {
       debuglog(w, x, z)
-      logger.debugged should contain inOrder(
-        "DebugTest.w = 42",
-        "DebugTest.this.x = the value",
-        "DebugTest.this.z = 3.14"
-      )
+      verify(underlying).debug("DebugTest.w = 42")
+      verify(underlying).debug("DebugTest.this.x = the value")
+      verify(underlying).debug("DebugTest.this.z = 3.14")
     }
   }
 
@@ -97,42 +95,40 @@ class DebugTest extends WordSpec with Matchers with DebugLog with BeforeAndAfter
 
     "trace a single constant" in {
       tracelog("foo")
-      logger.traced should contain only "foo"
+      verify(underlying).trace("foo")
     }
 
     "trace a local val" in {
       val foo = "xyzzy"
       tracelog(foo)
-      logger.traced should contain only "foo = xyzzy"
+      verify(underlying).trace("foo = xyzzy")
     }
     "trace a local var" in {
-      logger.traced.clear()
       var foo: String = ""
       foo = "xyzzy"
       tracelog(foo)
-      logger.traced should contain only "foo = xyzzy"
+      verify(underlying).trace("foo = xyzzy")
     }
 
     "trace a field" in {
       tracelog(x)
-      logger.traced should contain only "DebugTest.this.x = the value"
+      verify(underlying).trace("DebugTest.this.x = the value")
     }
 
     "trace a method" in {
       tracelog(z)
-      logger.traced should contain only "DebugTest.this.z = 3.14"
+      verify(underlying).trace("DebugTest.this.z = 3.14")
     }
     "trace a companion object field" in {
       tracelog(w)
-      logger.traced should contain only "DebugTest.w = 42"
+      verify(underlying).trace("DebugTest.w = 42")
     }
     "trace several args as multiple logger calls" in {
       tracelog(w, x, z)
-      logger.traced should contain inOrder(
-        "DebugTest.w = 42",
-        "DebugTest.this.x = the value",
-        "DebugTest.this.z = 3.14"
-      )
+      verify(underlying).trace(
+        "DebugTest.w = 42")
+      verify(underlying).trace("DebugTest.this.x = the value")
+      verify(underlying).trace("DebugTest.this.z = 3.14")
     }
   }
 }

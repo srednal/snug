@@ -9,9 +9,6 @@ import com.typesafe.config.ConfigException.WrongType
 import com.typesafe.config.{Config, ConfigFactory}
 import org.scalatest._
 
-// IMO being explicit (fewer constants) is good in tests, import scoping is intentional
-// scalastyle:off magic.number multiple.string.literals import.grouping
-
 case class TestConfigHolder(number: Int,
                             pi: Double,
                             interval: Duration,

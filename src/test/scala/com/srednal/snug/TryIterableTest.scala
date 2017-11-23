@@ -4,9 +4,6 @@ import org.scalatest._
 
 import scala.util.{Failure, Success}
 
-// IMO being explicit (fewer constants) is good in tests, import scoping is intentional
-// scalastyle:off magic.number multiple.string.literals import.grouping
-
 class TryIterableTest extends WordSpec with Matchers {
 
   "The TryIterable" should {

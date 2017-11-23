@@ -2,8 +2,6 @@ package com.srednal.snug
 
 import org.scalatest._
 
-// IMO being explicit (fewer constants) is good in tests, import scoping is intentional
-// scalastyle:off magic.number multiple.string.literals import.grouping
 class PathTest extends WordSpec with Matchers {
   import Path._
 

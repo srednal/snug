@@ -2,19 +2,14 @@ package com.srednal.snug.debug
 
 import scala.language.experimental.macros
 import scala.reflect.macros.blackbox
-//import com.typesafe.scalalogging.Logger
+import com.typesafe.scalalogging.Logger
 
 /** Intended to be mixed-in with, for example, LazyLogging or StrictLogging,
-  * however the only restriction is that logger.debug(String) can be called somehow.
+  * however the only restriction is that logger is defined.
   */
 trait DebugLog {
 
-  // use a structural type here (rather than typesafe.logging.Logger) because
-  // Logger is final and this makes testing more accessible
-  protected def logger: { // scalastyle:ignore structural.type
-    def debug(message: String): Unit
-    def trace(message: String): Unit
-  }
+  def logger: Logger
 
   // debuglog(foo) => logger.debug(s"foo = $foo")
   // debuglog(foo, bar) => logger.debug(s"foo = $foo"); logger.debug(s"bar = $bar")
