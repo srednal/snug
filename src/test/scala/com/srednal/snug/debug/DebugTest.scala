@@ -4,7 +4,7 @@ import com.typesafe.scalalogging.Logger
 import org.mockito.ArgumentCaptor
 import org.mockito.Mockito._
 import org.scalatest._
-import org.scalatest.mockito._
+import org.scalatestplus.mockito._
 
 object DebugTest {
   val w = 42

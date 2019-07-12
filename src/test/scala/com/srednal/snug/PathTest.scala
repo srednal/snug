@@ -5,6 +5,9 @@ import org.scalatest._
 class PathTest extends WordSpec with Matchers {
   import Path._
 
+  val root: HavePropertyMatcherGenerator = Symbol("root")
+  val absolute: HavePropertyMatcherGenerator = Symbol("absolute")
+
   "Path" should {
 
     "construct a simple path from ^" in {
@@ -34,25 +37,26 @@ class PathTest extends WordSpec with Matchers {
     "recognise ^ and % in empty strings" in {
       Path("") shouldBe ^
       Path("/") shouldBe %
+      Path() shouldBe ^
     }
     "not have a parent for % or ^" in {
       an[NoSuchElementException] should be thrownBy %.parent
       an[NoSuchElementException] should be thrownBy ^.parent
     }
     "non-empty paths should not be root" in {
-      Path("foo") should have('root(false))
+      Path("foo") should have(root(false))
     }
     "Roots should be root" in {
-      ^ should have('root(true))
-      % should have('root(true))
-      Path("") should have('root(true))
-      Path("/") should have('root(true))
+      ^ should have(root(true))
+      % should have(root(true))
+      Path("") should have(root(true))
+      Path("/") should have(root(true))
     }
     "know absolute vs relative paths" in {
-      ^ should have('absolute(false))
-      % should have('absolute(true))
-      (^ / "foo" / "bar") should have('absolute(false))
-      (% / "foo" / "bar") should have('absolute(true))
+      ^ should have(absolute(false))
+      % should have(absolute(true))
+      (^ / "foo" / "bar") should have(absolute(false))
+      (% / "foo" / "bar") should have(absolute(true))
     }
     "convert to absolute" in {
       ^.asAbsolute shouldBe %
@@ -86,7 +90,9 @@ class PathTest extends WordSpec with Matchers {
     "collapse extra roots in paths" in {
       ^ / "foo" / ^ / "/" / "bar" / "" / "baz" / ^ shouldBe Path("foo", "bar", "baz")
       % / "foo" / ^ / "/" / "bar" / "" / "baz" / ^ shouldBe % / Path("foo", "bar", "baz")
-      ^ / "foo" / % / "/" / "bar" / ^ / "baz" / ^ shouldBe Path("foo", "bar", "baz")
+    }
+    "not allow % (absolute root) in the middle of a path" in {
+      an[IllegalArgumentException] should be thrownBy ^ / "foo" / % / "bar" // root in the middle
     }
 
     "extract as parent/name (relative)" in {

@@ -51,7 +51,6 @@ class ConfigTest extends WordSpec with Matchers {
     }
     "fetch a collection of strings" in {
       config[Seq[String]]("foo.names") shouldBe Seq("foo", "bar", "baz", "foo")
-      config[Traversable[String]]("foo.names") shouldBe Traversable("foo", "bar", "baz", "foo")
       config[Iterable[String]]("foo.names") shouldBe Iterable("foo", "bar", "baz", "foo")
       config[List[String]]("foo.names") shouldBe List("foo", "bar", "baz", "foo")
 
@@ -108,10 +107,12 @@ class ConfigTest extends WordSpec with Matchers {
       config[Option[List[String]]]("baz") shouldBe None
     }
 
+    val failure: HavePropertyMatcherGenerator = Symbol("failure")
+
     "fetch as Try" in {
       config[Try[String]]("foo.hello") shouldBe Success("World")
       config[Try[Double]]("foo.pi") shouldBe Success(3.14)
-      config[Try[Int]]("foo.hello") should have('failure (true))
+      config[Try[Int]]("foo.hello") should have(failure(true))
     }
 
     "fetch URI and URL" in {

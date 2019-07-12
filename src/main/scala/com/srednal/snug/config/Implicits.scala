@@ -1,7 +1,7 @@
 package com.srednal.snug.config
 
 import com.srednal.snug.Path
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.concurrent.duration._
 import java.time.{Duration => JDuration}
 import scala.util.Try

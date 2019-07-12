@@ -15,7 +15,7 @@ class ServicesLoaderTest extends WordSpec with Matchers {
     "not instantiate anything till the stream is accessed" in {
       Test.clear()
       val s = ServicesLoader[Test]
-      Test.counts shouldBe Array(0, 0, 1) // does initially instantiate head
+      Test.counts shouldBe Array(0, 0, 0)
 
       s.head shouldBe a[Test3]
       Test.counts shouldBe Array(0, 0, 1)
@@ -35,7 +35,7 @@ class ServicesLoaderTest extends WordSpec with Matchers {
       Test.counts shouldBe Array(1, 1, 1)
 
       // but from a new loader....
-      ServicesLoader[Test].toStream.force
+      ServicesLoader[Test].to(LazyList).force
       Test.counts shouldBe Array(2, 2, 2)
     }
 

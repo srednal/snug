@@ -2,7 +2,7 @@ package com.srednal.snug
 
 import com.srednal.snug.TryIterable._
 import java.util.{ ServiceLoader => JServiceLoader }
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.reflect._
 import scala.util.Failure
 import scala.util.control.NonFatal
