@@ -2,24 +2,28 @@ organization := "com.srednal"
 name := "snug"
 version := "1.1"
 
-scalaVersion := "2.13.0"
+scalaVersion := "2.13.1"
 
 libraryDependencies ++= Seq(
-  "com.typesafe" % "config" % "1.3.4",
+  "com.typesafe" % "config" % "1.4.0",
   "com.typesafe.scala-logging" %% "scala-logging" % "3.9.2",
   "ch.qos.logback" % "logback-classic" % "1.2.3" % Test,
-  "org.scalatest" %% "scalatest" % "3.0.8" % Test,
-  "org.mockito" % "mockito-core" % "2.28.2" % Test
+  "org.scalatest" %% "scalatest" % "3.1.0" % Test,
+  "org.mockito" % "mockito-core" % "3.2.4" % Test
 )
 
 scalacOptions := Seq(
-  "-Xlint",
+  "-Xlint:_",
   "-feature",
   "-deprecation",
   "-unchecked",
   "-Xfatal-warnings",
   "-Ywarn-value-discard",
-  "-Ywarn-unused"
+  "-Ywarn-unused:_",
+  "-explaintypes",
+  "-Xcheckinit",
+  "-Ywarn-dead-code",
+  "-Ywarn-extra-implicit"
 )
 
 scalastyleFailOnWarning := true

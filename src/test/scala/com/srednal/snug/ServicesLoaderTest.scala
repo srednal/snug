@@ -1,8 +1,6 @@
 package com.srednal.snug
 
-import org.scalatest._
-
-class ServicesLoaderTest extends WordSpec with Matchers {
+class ServicesLoaderTest extends UnitTest {
 
   import testservices._
 

@@ -1,8 +1,6 @@
 package com.srednal.snug
 
-import org.scalatest._
-
-class RWLockTest extends WordSpec with Matchers {
+class RWLockTest extends UnitTest {
 
   "The RWLock" should {
 

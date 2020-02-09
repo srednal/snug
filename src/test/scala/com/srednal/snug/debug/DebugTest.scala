@@ -1,18 +1,15 @@
-package com.srednal.snug.debug
+package com.srednal.snug
+package debug
 
 import com.typesafe.scalalogging.Logger
-import org.mockito.ArgumentCaptor
 import org.mockito.Mockito._
-import org.scalatest._
-import org.scalatestplus.mockito._
+import org.scalatest.BeforeAndAfterEach
 
 object DebugTest {
   val w = 42
-
-  def captor[X: Manifest]: ArgumentCaptor[X] = ArgumentCaptor.forClass[X, X](manifest[X].runtimeClass.asInstanceOf[Class[X]])
 }
 
-class DebugTest extends WordSpec with MockitoSugar with Matchers with DebugLog with BeforeAndAfterEach {
+class DebugTest extends UnitTest with DebugLog with BeforeAndAfterEach {
   import DebugTest._
 
   val underlying = mock[org.slf4j.Logger]
@@ -47,6 +44,7 @@ class DebugTest extends WordSpec with MockitoSugar with Matchers with DebugLog w
       debuglog(foo)
       verify(underlying).debug("foo = xyzzy")
     }
+
     "debug a local var" in {
       var foo: String = ""
       foo = "xyzzy"
@@ -63,6 +61,7 @@ class DebugTest extends WordSpec with MockitoSugar with Matchers with DebugLog w
       debuglog(z)
       verify(underlying).debug("DebugTest.this.z = 3.14")
     }
+
     "debug a method" in {
       debuglog(zz("foo"))
       verify(underlying).debug( """DebugTest.this.zz("foo") = oof""")
@@ -75,15 +74,18 @@ class DebugTest extends WordSpec with MockitoSugar with Matchers with DebugLog w
       verify(underlying).debug(c.capture)
       c.getValue should startWith("f = ")
     }
+
     "debug a function invocation" in {
       val f: String => Int = _.toInt
       debuglog(f("13"))
       verify(underlying).debug( """f.apply("13") = 13""")
     }
+
     "debug a companion object field" in {
       debuglog(w)
       verify(underlying).debug("DebugTest.w = 42")
     }
+
     "debug several args as multiple logger calls" in {
       debuglog(w, x, z)
       verify(underlying).debug("DebugTest.w = 42")
@@ -104,6 +106,7 @@ class DebugTest extends WordSpec with MockitoSugar with Matchers with DebugLog w
       tracelog(foo)
       verify(underlying).trace("foo = xyzzy")
     }
+
     "trace a local var" in {
       var foo: String = ""
       foo = "xyzzy"
@@ -120,10 +123,12 @@ class DebugTest extends WordSpec with MockitoSugar with Matchers with DebugLog w
       tracelog(z)
       verify(underlying).trace("DebugTest.this.z = 3.14")
     }
+
     "trace a companion object field" in {
       tracelog(w)
       verify(underlying).trace("DebugTest.w = 42")
     }
+
     "trace several args as multiple logger calls" in {
       tracelog(w, x, z)
       verify(underlying).trace(

@@ -1,13 +1,12 @@
-package com.srednal.snug.config
+package com.srednal.snug
+package config
 
 import scala.concurrent.duration._
 import java.time.{Duration => JDuration}
 import scala.util.{Success, Try}
 import java.net.{InetAddress, InetSocketAddress, URI, URL}
-import com.srednal.snug.Path
 import com.typesafe.config.ConfigException.WrongType
 import com.typesafe.config.{Config, ConfigFactory}
-import org.scalatest._
 
 case class TestConfigHolder(number: Int,
                             pi: Double,
@@ -16,7 +15,7 @@ case class TestConfigHolder(number: Int,
                             yes: Boolean,
                             names: Seq[String])
 
-class ConfigTest extends WordSpec with Matchers {
+class ConfigTest extends UnitTest {
 
   "Config" should {
 
@@ -25,23 +24,29 @@ class ConfigTest extends WordSpec with Matchers {
     "fetch a string" in {
       config[String]("foo.hello") shouldBe "World"
     }
+
     "fetch an int" in {
       config[Int]("foo.number") shouldBe 42
     }
+
     "fetch a long" in {
       config[Long]("foo.number") shouldBe 42L
     }
+
     "fetch a double" in {
       config[Double]("foo.pi") shouldBe 3.14
       config[Double]("foo.number") shouldBe 42.0
     }
+
     "fetch a float" in {
       config[Float]("foo.pi") shouldBe 3.14f
       config[Float]("foo.number") shouldBe 42.0f
     }
+
     "fetch a boolean" in {
       config[Boolean]("foo.yes") shouldBe true
     }
+
     "fetch a duration" in {
       config[JDuration]("foo.interval") shouldBe JDuration.ofSeconds(5)
       config[Duration]("foo.interval") shouldBe 5.seconds
@@ -49,6 +54,7 @@ class ConfigTest extends WordSpec with Matchers {
       config[Duration]("foo.number") shouldBe 42.millis
       config[Duration]("foo.pi") shouldBe 3.14.millis
     }
+
     "fetch a collection of strings" in {
       config[Seq[String]]("foo.names") shouldBe Seq("foo", "bar", "baz", "foo")
       config[Iterable[String]]("foo.names") shouldBe Iterable("foo", "bar", "baz", "foo")
@@ -221,10 +227,8 @@ class ConfigTest extends WordSpec with Matchers {
     }
 
     "fetch a Tuple" in {
-
       config[(String, Double)]("foo.tuple2").shouldBe(("foo", 3.14))
       config[(String, Int, Duration)]("foo.tuple3").shouldBe(("foo", 42, 5.seconds))
-
     }
   }
 }

@@ -1,10 +1,10 @@
-package com.srednal.snug.io
+package com.srednal.snug
+package io
 
-import org.scalatest._
 import java.io.Closeable
 import scala.io.Source
 
-class WithResourceTest extends WordSpec with Matchers {
+class WithResourceTest extends UnitTest {
 
   "The WithResource" should {
 

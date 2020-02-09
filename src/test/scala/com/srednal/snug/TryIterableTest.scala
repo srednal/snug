@@ -1,10 +1,8 @@
 package com.srednal.snug
 
-import org.scalatest._
-
 import scala.util.{Failure, Success}
 
-class TryIterableTest extends WordSpec with Matchers {
+class TryIterableTest extends UnitTest {
 
   "The TryIterable" should {
 
@@ -46,6 +44,7 @@ class TryIterableTest extends WordSpec with Matchers {
           contain(Success(3))
       }
     }
+
     "implicitly make a TryStream" in {
       import TryIterable._
       List(1, 2, 3).toTryStream should {

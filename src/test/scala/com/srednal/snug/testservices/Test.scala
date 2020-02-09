@@ -1,4 +1,5 @@
-package com.srednal.snug.testservices
+package com.srednal.snug
+package testservices
 
 object Test {
  val counts = new Array[Int](3)
@@ -28,17 +29,17 @@ class Test3 extends Test {
 }
 
 class TestErr1 extends Test {
-  throw new Exception("from TestErr1")
+  assert(false)
   def count = 0
 }
 
 class TestErr2 extends Test {
-  throw new Exception("from TestErr2")
+  assert(false)
   def count = 0
 }
 
 class TestErr3 extends Test {
-  throw new Exception("from TestErr3")
+  assert(false)
   def count = 0
 }
 
