@@ -8,8 +8,8 @@ libraryDependencies ++= Seq(
   "com.typesafe" % "config" % "1.4.0",
   "com.typesafe.scala-logging" %% "scala-logging" % "3.9.2",
   "ch.qos.logback" % "logback-classic" % "1.2.3" % Test,
-  "org.scalatest" %% "scalatest" % "3.1.0" % Test,
-  "org.mockito" % "mockito-core" % "3.2.4" % Test
+  "org.scalatest" %% "scalatest" % "3.1.1" % Test,
+  "org.mockito" % "mockito-core" % "3.3.3" % Test
 )
 
 scalacOptions := Seq(
