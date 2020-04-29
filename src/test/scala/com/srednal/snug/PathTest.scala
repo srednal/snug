@@ -51,15 +51,15 @@ class PathTest extends UnitTest {
     }
 
     "Roots should be root" in {
-      ^ should have(prop"root"(true))
-      % should have(prop"root"(true))
+      (^) should have(prop"root"(true))
+      (%) should have(prop"root"(true))
       Path("") should have(prop"root"(true))
       Path("/") should have(prop"root"(true))
     }
 
     "know absolute vs relative paths" in {
-      ^ should have(prop"absolute"(false))
-      % should have(prop"absolute"(true))
+      (^) should have(prop"absolute"(false))
+      (%) should have(prop"absolute"(true))
       (^ / "foo" / "bar") should have(prop"absolute"(false))
       (% / "foo" / "bar") should have(prop"absolute"(true))
     }
@@ -80,8 +80,8 @@ class PathTest extends UnitTest {
 
     "expand /'s in strings" in {
       "foo/bar/baz".asPath shouldBe Path("foo", "bar", "baz")
-      ^ / "foo/bar/baz" shouldBe Path("foo", "bar", "baz")
-      % / "foo/bar/baz" shouldBe Path("/", "foo", "bar", "baz")
+      (^ / "foo/bar/baz") shouldBe Path("foo", "bar", "baz")
+      (% / "foo/bar/baz") shouldBe Path("/", "foo", "bar", "baz")
       "foo/bar" / "baz" shouldBe Path("foo", "bar", "baz")
       "foo" / "bar/baz" shouldBe Path("foo", "bar", "baz")
     }
@@ -98,8 +98,8 @@ class PathTest extends UnitTest {
     }
 
     "collapse extra roots in paths" in {
-      ^ / "foo" / ^ / "/" / "bar" / "" / "baz" / ^ shouldBe Path("foo", "bar", "baz")
-      % / "foo" / ^ / "/" / "bar" / "" / "baz" / ^ shouldBe % / Path("foo", "bar", "baz")
+      (^ / "foo" / ^ / "/" / "bar" / "" / "baz" / ^) shouldBe Path("foo", "bar", "baz")
+      (% / "foo" / ^ / "/" / "bar" / "" / "baz" / ^) shouldBe % / Path("foo", "bar", "baz")
     }
 
     "not allow % (absolute root) in the middle of a path" in {
@@ -185,8 +185,8 @@ class PathTest extends UnitTest {
     "equals vs root without bonking (symmetrically)" in {
       Path("foo") should not be ^
       Path("foo") should not be %
-      ^ should not be Path("foo")
-      % should not be Path("foo")
+      (^) should not be Path("foo")
+      (%) should not be Path("foo")
     }
   }
 }
