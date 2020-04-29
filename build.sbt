@@ -2,7 +2,7 @@ organization := "com.srednal"
 name := "snug"
 version := "1.1"
 
-scalaVersion := "2.13.1"
+scalaVersion := "2.13.2"
 
 libraryDependencies ++= Seq(
   "com.typesafe" % "config" % "1.4.0",
