@@ -15,32 +15,32 @@ trait Test {
 
 class Test1 extends Test {
   Test.counts(0) += 1
-  def count = Test.counts(0)
+  def count: Int = Test.counts(0)
 }
 
 class Test2 extends Test {
   Test.counts(1) += 1
-  def count = Test.counts(1)
+  def count: Int = Test.counts(1)
 }
 
 class Test3 extends Test {
   Test.counts(2) += 1
-  def count = Test.counts(2)
+  def count: Int = Test.counts(2)
 }
 
 class TestErr1 extends Test {
   assert(false)
-  def count = 0
+  def count: Int = 0
 }
 
 class TestErr2 extends Test {
   assert(false)
-  def count = 0
+  def count: Int = 0
 }
 
 class TestErr3 extends Test {
   assert(false)
-  def count = 0
+  def count: Int = 0
 }
 
 trait NotThere

@@ -15,6 +15,7 @@ case class TestConfigHolder(number: Int,
                             yes: Boolean,
                             names: Seq[String])
 
+// scalastyle:off magic.number
 class ConfigTest extends UnitTest {
 
   "Config" should {
@@ -70,7 +71,7 @@ class ConfigTest extends UnitTest {
     }
 
     implicit object TestConfigHolderCvt extends ConfigConversion[TestConfigHolder] {
-      def get(cfg: Config, path: String) = {
+      def get(cfg: Config, path: String): TestConfigHolder = {
         val c: Config = cfg(path)
         TestConfigHolder(
           c("number"),

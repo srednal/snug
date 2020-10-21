@@ -18,8 +18,8 @@ class WithResourceTest extends UnitTest {
 
     "close even if run pukes" in {
       var closed = false
-      def closeit() = closed = true
-      an[Exception] should be thrownBy WithResource.withCloser(closeit) {throw new Exception}
+      def closeit(): Unit = closed = true
+      an[Exception] should be thrownBy WithResource.withCloser(closeit()) {throw new Exception}
       closed shouldBe true
     }
 
@@ -36,25 +36,25 @@ class WithResourceTest extends UnitTest {
     "close a Closeable" in {
       var closed = false
       class C extends Closeable {
-        override def close() = { closed = true}
+        override def close(): Unit = { closed = true}
       }
-      var ranWith: C = null
+      var ranWith: Option[C] = None
       val c = new C
-      WithResource.withResource(c) {x => ranWith = x; "thing"} shouldBe "thing"
-      ranWith shouldBe c
+      WithResource.withResource(c) {x => ranWith = Some(x); "thing"} shouldBe "thing"
+      ranWith shouldBe Some(c)
       closed shouldBe true
     }
 
     "close a Source" in {
       var closed = false
       class S extends Source {
-        override def close() = { closed = true}
+        override def close(): Unit = { closed = true}
         override val iter = Nil.iterator
       }
-      var ranWith: S = null
+      var ranWith: Option[S] = None
       val s = new S
-      WithResource.withSource(s) {x => ranWith = x; "thing"} shouldBe "thing"
-      ranWith shouldBe s
+      WithResource.withSource(s) {x => ranWith = Some(x); "thing"} shouldBe "thing"
+      ranWith shouldBe Some(s)
       closed shouldBe true
     }
   }

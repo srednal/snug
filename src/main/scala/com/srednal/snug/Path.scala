@@ -22,7 +22,7 @@ sealed trait Path {
   def elements: Seq[String] = parent.elements :+ name
 
   /** this / "foo" -> this/path/foo */
-  def /(p: String): Path = p split("/", 2) match {
+  def /(p: String): Path = p.split("/", 2) match {
     case Array(head, tail) => this / head / tail
     case Array("") => this
     case Array(path) => new NonEmptyPath(this, path)

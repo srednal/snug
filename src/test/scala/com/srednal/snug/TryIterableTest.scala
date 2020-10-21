@@ -13,8 +13,8 @@ class TryIterableTest extends UnitTest {
     "iterate over success/fail things" in {
       case class OddException(i: Int) extends Throwable(s"$i is odd")
       val iter = new Iterable[Int] {
-        def iterator = new Iterator[Int] {
-          private var i = 0 // scalastyle:ignore var.field
+        def iterator: Iterator[Int] = new Iterator[Int] {
+          private var i = 0
           def hasNext: Boolean = i < 5
           def next(): Int = {
             val result = i
@@ -30,7 +30,7 @@ class TryIterableTest extends UnitTest {
         Failure(OddException(1)),
         Success(2),
         Failure(OddException(3)),
-        Success(4)
+        Success(4) // scalastyle:ignore magic.number
       )
     }
 

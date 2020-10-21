@@ -79,8 +79,6 @@ trait ContainerImplicits extends LowerPriorityContainerImplicits {
 
   implicit def configConvertForList[X: ConfigConversion]: ConfigConversion[List[X]] = new ListConversion[X]
 
-  // scalastyle spaces after plus seems to not grok multple covariant type params
-  // scalastyle:ignore spaces.after.plus
   private class Tuple2Conversion[+A: ConfigConversion, +B: ConfigConversion] extends ConfigConversion[(A, B)] {
     override def get(cfg: Config, path: String): (A, B) = cfg.getList(path).asScala.toList match {
       case a :: b :: Nil => (extractVal[A](a), extractVal[B](b))

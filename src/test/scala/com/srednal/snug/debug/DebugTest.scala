@@ -24,8 +24,8 @@ class DebugTest extends UnitTest with DebugLog with BeforeAndAfterEach {
   }
 
   val x = "the value"
-  def z = 3.14
-  def zz(s: String) = s.reverse
+  def z: Double = 3.14
+  def zz(s: String): String = s.reverse
 
   "the debug macro" should {
 
@@ -35,7 +35,7 @@ class DebugTest extends UnitTest with DebugLog with BeforeAndAfterEach {
     }
 
     "debug a single non-string constant" in {
-      debuglog(123)
+      debuglog(123) // scalastyle:ignore magic.number
       verify(underlying).debug("123")
     }
 
