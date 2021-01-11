@@ -1,5 +1,7 @@
 package com.srednal.snug
 
+import scala.annotation.nowarn
+
 // TODO ? - distinguish between a "dir" and a "file" (foo/bar/ vs foo/bar) ?
 
 /**
@@ -22,6 +24,7 @@ sealed trait Path {
   def elements: Seq[String] = parent.elements :+ name
 
   /** this / "foo" -> this/path/foo */
+  @nowarn("msg=match may not be exhaustive")
   def /(p: String): Path = p.split("/", 2) match {
     case Array(head, tail) => this / head / tail
     case Array("") => this

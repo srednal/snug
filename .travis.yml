@@ -2,7 +2,7 @@ language: scala
 
 jdk: openjdk15
 
-scala: 2.13.3
+scala: 2.13.4
 
 script:
   - sbt clean compile coverage test coverageReport scalastyle test:scalastyle

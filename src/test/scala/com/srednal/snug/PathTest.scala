@@ -1,5 +1,8 @@
 package com.srednal.snug
 
+//import scala.annotation.nowarn
+
+//@nowarn("msg=match may not be exhaustive") // extraction tests: val a / b / c = ...
 class PathTest extends UnitTest {
   import Path._
 
@@ -107,71 +110,93 @@ class PathTest extends UnitTest {
     }
 
     "extract as parent/name (relative)" in {
-      val p / n = ^ / "foo" / "bar" / "baz"
-      p shouldBe ^ / "foo" / "bar"
-      n shouldBe "baz"
+      ^ / "foo" / "bar" / "baz" match {
+        case p / n =>
+          p shouldBe ^ / "foo" / "bar"
+          n shouldBe "baz"
+        case x => fail(s"not matched: $x")
+      }
     }
 
     "extract as parent/sub/name (relative)" in {
-      val a / b / c = ^ / "foo" / "bar" / "baz" / "qux"
-      a shouldBe ^ / "foo" / "bar"
-      b shouldBe "baz"
-      c shouldBe "qux"
+      ^ / "foo" / "bar" / "baz" / "qux" match {
+        case a / b / c =>
+          a shouldBe ^ / "foo" / "bar"
+          b shouldBe "baz"
+          c shouldBe "qux"
+        case x => fail(s"not matched: $x")
+      }
     }
 
     "extract via Path.unapplySeq (relative)" in {
-      val Path(a, b, cs@_*) = ^ / "foo" / "bar" / "baz" / "qux"
-      a shouldBe "foo"
-      b shouldBe "bar"
-      cs shouldBe "baz" :: "qux" :: Nil
+      ^ / "foo" / "bar" / "baz" / "qux" match {
+        case Path(a, b, cs@_*) =>
+          a shouldBe "foo"
+          b shouldBe "bar"
+          cs shouldBe "baz" :: "qux" :: Nil
+        case x => fail(s"not matched: $x")
+      }
 
-      val Path(d, e, fs@_*) = ^ / "foo" / "bar"
-      d shouldBe "foo"
-      e shouldBe "bar"
-      fs shouldBe Nil
+      ^ / "foo" / "bar" match {
+        case Path(d, e, fs@_*) =>
+          d shouldBe "foo"
+          e shouldBe "bar"
+          fs shouldBe Nil
+        case x => fail(s"not matched: $x")
+      }
     }
 
     "match relative path" in {
-      val mtch = ^ / "foo" / "bar" match {
-        case % / f / b => s"matched with % / $f / $b"
-        case ^ / f / b => s"matched with ^ / $f / $b"
-        case x => s"not matched $x"
+      ^ / "foo" / "bar" match {
+        case % / f / b => fail(s"matched with % / $f / $b")
+        case ^ / _ / _ => // pass
+        case x => fail(s"not matched $x")
       }
-      mtch shouldBe "matched with ^ / foo / bar"
     }
 
     "match absolute path" in {
-      val mtch = % / "foo" / "bar" match {
-        case ^ / f / b => s"matched with ^ / $f / $b"
-        case % / f / b => s"matched with % / $f / $b"
-        case x => s"not matched $x"
+      % / "foo" / "bar" match {
+        case ^ / f / b => fail(s"matched with ^ / $f / $b")
+        case % / _ / _ => // pass
+        case x => fail(s"not matched $x")
       }
-      mtch shouldBe "matched with % / foo / bar"
     }
 
     "extract as parent/name (absolute)" in {
-      val p / n = % / "foo" / "bar" / "baz"
-      p shouldBe % / "foo" / "bar"
-      n shouldBe "baz"
+      % / "foo" / "bar" / "baz" match {
+        case p / n =>
+          p shouldBe % / "foo" / "bar"
+          n shouldBe "baz"
+        case x => fail(s"not matched: $x")
+      }
     }
 
     "extract as parent/sub/name (absolute)" in {
-      val a / b / c = % / "foo" / "bar" / "baz" / "qux"
-      a shouldBe % / "foo" / "bar"
-      b shouldBe "baz"
-      c shouldBe "qux"
+      % / "foo" / "bar" / "baz" / "qux" match {
+        case a / b / c =>
+          a shouldBe % / "foo" / "bar"
+          b shouldBe "baz"
+          c shouldBe "qux"
+        case x => fail(s"not matched: $x")
+      }
     }
 
     "extract via Path.unapplySeq (absolute)" in {
-      val Path(a, b, cs@_*) = % / "foo" / "bar" / "baz" / "qux"
-      a shouldBe "foo"
-      b shouldBe "bar"
-      cs shouldBe "baz" :: "qux" :: Nil
+      % / "foo" / "bar" / "baz" / "qux" match {
+        case Path(a, b, cs@_*) =>
+          a shouldBe "foo"
+          b shouldBe "bar"
+          cs shouldBe "baz" :: "qux" :: Nil
+        case x => fail(s"not matched: $x")
+      }
 
-      val Path(d, e, fs@_*) = % / "foo" / "bar"
-      d shouldBe "foo"
-      e shouldBe "bar"
-      fs shouldBe Nil
+      % / "foo" / "bar" match {
+        case Path(d, e, fs@_*) =>
+          d shouldBe "foo"
+          e shouldBe "bar"
+          fs shouldBe Nil
+        case x => fail(s"not matched: $x")
+      }
     }
 
     "toString reasonably" in {
