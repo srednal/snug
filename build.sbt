@@ -2,14 +2,14 @@ organization := "com.srednal"
 name := "snug"
 version := "1.1"
 
-scalaVersion := "2.13.4"
+scalaVersion := "2.13.5"
 
 libraryDependencies ++= Seq(
   "com.typesafe" % "config" % "1.4.1",
   "com.typesafe.scala-logging" %% "scala-logging" % "3.9.2",
   "ch.qos.logback" % "logback-classic" % "1.2.3" % Test,
-  "org.scalatest" %% "scalatest" % "3.2.3" % Test,
-  "org.mockito" % "mockito-core" % "3.7.0" % Test
+  "org.scalatest" %% "scalatest" % "3.2.6" % Test,
+  "org.mockito" % "mockito-core" % "3.8.0" % Test
 )
 
 scalacOptions := Seq(

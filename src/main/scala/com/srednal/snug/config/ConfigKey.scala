@@ -1,3 +1,5 @@
 package com.srednal.snug.config
 
-case class ConfigKey[X: ConfigConversion](path: String)
+import scala.annotation.unused
+
+case class ConfigKey[X](path: String)(@unused implicit val conversion: ConfigConversion[X])

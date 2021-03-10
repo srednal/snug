@@ -214,7 +214,7 @@ class ConfigTest extends UnitTest {
       config(setKey) shouldBe Set("foo", "bar", "baz")
     }
 
-    object TestConfigHolderKey extends ConfigKey[TestConfigHolder]("foo")
+    val TestConfigHolderKey = ConfigKey[TestConfigHolder]("foo")
 
     "fetch via a ConfigKey object" in {
       config(TestConfigHolderKey) shouldBe
